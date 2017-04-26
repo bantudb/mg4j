@@ -1,0 +1,748 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>MG4J: Managing Gigabytes for Java</title>
+  </head>
+
+  <body>
+ 
+    <P>Classes that compose {@linkplain
+      it.unimi.di.big.mg4j.search.DocumentIterator iterators over
+    documents}. Such iterators are returned, for instance, by {@link
+    it.unimi.di.big.mg4j.index.IndexReader#documents(long)}.
+
+    <H2>Minimal-interval semantics</H2>
+    
+    <P>MG4J provides <em>minimal-interval semantics</em>. That is, if the index
+    is full-text, a {@link it.unimi.di.big.mg4j.search.DocumentIterator} will provide a list of documents and, for
+    each document, a list of minimal intervals. This intervals denote ranges of
+    positions in the document that satisfy the iterator: for instance, if you
+    compose two documents iterators using an {@link
+    it.unimi.di.big.mg4j.search.AndDocumentIterator}, you will get as a result the
+    intersection of the document lists of the underlying iterators. Moreover,
+    for each document you will get the minimal set of intervals that contain
+    one interval both from the first iterators and from the second one.
+
+    <P>This information is of course very useful if you're going to assign a
+    score to the document, as smaller intervals mean a more precise match. At
+    the basic level (e.g., iterators returned by an index), the intervals
+    returned upon a document are intervals of length one containing the term
+    that was used to generate the iterator. Intervals for compound iterators
+    are built in a natural way, preserving minimality. More details can be
+    found in Charles L. A. Clarke, Gordon V. Cormack, and  Forbes J. Burkowski, 
+    &ldquo;An algebra for structured text search and a framework for its implementation&rdquo;, 
+    <i>Comput. J.</i>, 38:1 (1995), pages 43&minus;56. Scorers for documents may be
+    found in the {@link it.unimi.di.big.mg4j.search.score} package.
+
+	 <P>The algorithms used by classes in this package to compute minimal-interval
+	 operators are new: details can be found
+	 <a href="http://vigna.dsi.unimi.it/papers.php#BoVELAMIS">here</a>.
+
+	<P>Note that MG4J provides minimal-interval semantics for a <em>set of
+    indices</em>. This extension is a significant improvement over single-index
+    semantics. However, defining the exact meaning of a query is a nontrivial
+    problem that will be fully dealt with in a forthcoming paper.
+
+   <h1>Searching with minimal-interval semantics</h1> 
+
+	<P>The aim of this section is to provide a minimal insight of how minimal-interval semantics works,
+	and explain the basic syntax used by the {@link it.unimi.di.big.mg4j.query.Query} command-line tool.
+	In this section we shall try to discuss this issue only through examples; we shall later explain
+	how you can actually perform searches of this kind using MG4J.</p>
+	
+	<p>Note that you do not have to understand the details of minimal-interval semantics to fruitfully
+	use MG4J. Several natural operators (ordered conjunction, proximity limitation, etc.) are computed
+	by MG4J very efficiently using minimal-interval semantics just under the hood.
+	
+	<P>MG4J solves queries on <em>multiple indices</em>; by saying so, we mean that
+		you may have many indices concerning the same document collection, and you want to perform
+		a query that may search on some of them. Think, for example, of a collection of emails:
+		you might have generated a number of indices, to index their subjects, sender, recipient(s), 
+		body etc. All these indices can be thought of as individual entities, their only relation being
+		that they index collections with the same number of documents, and that same-numbered documents
+		conceptually "come" from the same source. The notion of multiple indices should not be new to
+		the reader that is familiar with the {@link it.unimi.di.big.mg4j.document} package.
+		
+	 <P>In our examples, we will assume that we have three indices (say, <samp>subject</samp>,
+		<samp>from</samp> and <samp>body</samp>), and that <samp>subject</samp> is the
+		used as default. Be warned that the actual syntax of queries in this section is immaterial (even though
+		we shall stick to the syntax of {@link it.unimi.di.big.mg4j.query.parser.SimpleParser}).
+		
+	 <P>Two different aspects should be taken into consideration when trying to determine which document actually match (i.e., satisfy)
+	 the query: 
+	 	<ul>
+	 		<li>first, one can consider this in a purely Boolean (true/false) setting: thus a document may either satisfy the query or not; this is actually the 
+	 		only information you can get for indices that do not contain positions;</li>
+	 		<li>second, one can consider, for a document that matches the query in the above sense, which <em>intervals</em> (i.e., minimal
+	 		sequences of consecutive words within the document) actually witness the match; this information will be available
+	 		if the index contains positions.</li>
+	 	</ul>
+	 	
+	 <P>In the following subsections, we shall give information about both kind of satisfiability. A final section contains pathological
+	 cases that behave counterintuitively.</p>
+
+		<h2>Queries available on all indices</h2>
+	    
+		<h3>Simple queries</h3>
+
+		<P>The simplest possible query consists in a single search term. The documents matching such a query
+		 are exactly those that contain the given term, with respect to the default index. In our example, the query
+		 
+<PRE style="text-align:center">
+meeting
+</PRE>
+		 
+		 will be matched by the documents (emails) that contain the term "meeting" in their subject. If you want,
+		 you can perform the query on another index (different from the default one); thus, for example, the query
+
+<PRE style="text-align:center">
+body: meeting
+</PRE>
+
+		 will be matched by the documents that contain the term "meeting" in their body. In both cases, the intervals 
+		 witnessing the match will be the single occurrences of the term "meeting" in the subject and in the body field, respectively.
+		 You can also (mostly for debugging purposes) use a sharp sign followed by a natural number to denote a term
+		 by its lexicographical rank. Thus,
+<PRE style="text-align:center">
+#0
+</PRE>
+		
+		returns the documents containing the lexicographically smallest term. Note however, that some scorers
+		might really require a term expressed as a string to work properly.
+		
+		<h3>Escaping</h3>
+		
+		<P>In the last example, we have explained that an index can be specified using
+		a colon; this is one of many special symbols that correspond to operators, and 
+		that we shall talk about in the following. If any of your query term happens
+		to contain one of these symbols, you can escape it using a backslash (\); a backslash
+		is escaped by itself (\\). So, for example, if your collection indexes the colon
+		as a word, you can query for it as follows:
+		
+<PRE style="text-align:center">
+\:
+</PRE>
+		 
+		 <h3>Conjunctive queries</h3>
+		 
+		 <P>You can specify that more than one condition should be met in conjunction by using the
+			AND operator. For example:
+			
+<PRE style="text-align:center">
+meeting AND schedule
+</PRE>
+			
+			will be matched by those document whose subject contains both the term "meeting" and the term "schedule" (not
+			necessarily in this order). The witnesses will be minimal intervals in the subjects that contain both terms. For
+			example, if the subject was 
+			
+<PRE style="text-align:center">
+schedule the meeting (should we schedule this meeting or not)?
+</PRE>
+			
+			then the above query will have three witnesses: "schedule the meeting", "meeting (should we schedule" and
+			"schedule this meeting".
+			
+			<p>The keyword AND can be subsituted with the symbol &amp;, with the symbol &#x2227; (Unicode 0x2227), or can even be 
+			omitted. So the above query is equivalent to:
+
+<PRE style="text-align:center">
+meeting &amp; schedule
+</PRE>
+
+			and to
+			
+<PRE style="text-align:center">
+meeting schedule
+</PRE>
+			
+			or 
+
+<PRE style="text-align:center">
+meeting &#x2227; schedule
+</PRE>
+
+			Also in this case, you can select a different index for the query to be matched. For example:
+			
+<PRE style="text-align:center">
+body: meeting schedule
+</PRE>
+			
+			(or, equivalently, <SAMP>body: meeting AND schedule</SAMP> or <SAMP>body: meeting &amp; schedule</SAMP>)
+			will be matched by documents that contain the term "meeting" in their body and the term "schedule" in 
+			their subject. In this case, witnesses come from different sources: a witness will be any single occurrence of
+			the word "meeting" in the body (there should be at least one to make the document match the query) and
+			any single occurrence of the word "schedule" in the subject (again, there should be at least one to make the
+			document match the query).
+			 If you want both terms to be searched for in the body index, you can use:
+
+<PRE style="text-align:center">
+body: meeting body: schedule
+</PRE>
+			
+			or, simply,
+
+<PRE style="text-align:center">
+body: (meeting schedule)
+</PRE>
+
+
+		<h3>Disjunctive queries</h3>
+		
+		<P>You can also introduce a disjunctive (OR) query, like in 
+			
+<PRE style="text-align:center">
+meeting OR schedule
+</PRE>
+			
+			that will be matched by the documents that contain the term "meeting" or the term "schedule" (or both) in their
+			subject. A witness will then be every single occurrence of either word in the subject. The keyword OR can 
+			be substituted with |, or with the symbol &#x2228; (Unicode 0x2228); hence, the previous query is equivalent to
+
+<PRE style="text-align:center">
+meeting | schedule
+</PRE>
+			
+			and to
+
+<PRE style="text-align:center">
+meeting &#x2228; schedule
+</PRE>
+			
+			<p>Conjunctive and disjunctive operators can appear in the same query, with the rule that AND has higher priority
+			than OR. So, for example:
+		 
+<PRE style="text-align:center">
+meeting AND schedule OR time
+</PRE>
+
+			will be matched by documents whose subject contains <em>both</em> "meeting" and "schedule", and by documents
+			whose subject contains "time". In this case, a witness will either be a (possibly long) interval containing both the words
+			"meeting" and "schedule", or a one-word interval containing the word "time". If you want to change this behaviour, you should use parenthesis, like:
+
+<PRE style="text-align:center">
+meeting AND (schedule OR time)
+</PRE>
+	
+			
+	
+			<p>Again, you can use index selectors, like in:
+
+<PRE style="text-align:center">
+body:meeting AND (schedule OR time)
+</PRE>
+			
+			that will be matched by documents containing "meeting" in their body (a witness being every single occurrence of the word in the body), 
+			and "schedule" or "time" in their subject (a witness being every single occurrence of either word in the subject). Similarly:
+
+<PRE style="text-align:center">
+body:(meeting AND (schedule OR time))
+</PRE>
+			
+			will match documents that contain "meeting" and either "schedule" or "time" (or both) in their body.
+	
+			<h3>Negative (NOT) queries</h3>	
+
+			<P>You can specify that you want to exclude documents containing a certain term, or, more in general,
+				satisfying a certain query, by using the (unary, prefix) operator <samp>NOT</samp>. For example:
+
+<PRE style="text-align:center">
+body:(meeting AND NOT tomorrow) AND subject:schedule
+</PRE>
+				
+				will be satistied by the emails that contain the term "schedule" in their subject, and the term "meeting"
+				but not the term "tomorrow" in their body.  The operator NOT can be substituted with !, like in:
+				
+<PRE style="text-align:center">
+body:(meeting !tomorrow) subject:schedule
+</PRE> 
+				
+			<P>Negative queries are easily understood in a Boolean context, but may be more difficult as far as witnesses are 
+			concerned. Basically, the implementation of NOT works in such a way that NOT is actually used only for the
+			Boolean match, but does not influence witnesses. In more detail, the only witness associated with a true
+			NOT query is an <em>empty</em> interval.
+
+
+
+			  
+			 <h3>Prefix and multiterm queries</h3>
+			 
+			   <P>A <em>prefix query</em> is a simple query that is matched by all terms starting from the same nonempty prefix. For example:
+			   
+<PRE style="text-align:center">
+govern*
+</PRE>
+			  
+			   is matched by all documents containing any word starting with "govern". For the prefix operator <code>*</code> to work, you 
+			   have to endow your index with a {@link it.unimi.dsi.big.util.PrefixMap}. What really happens in this case is that the query
+			   is essentially expanded into a disjunction that contains all the words in the dictionary that start with "govern". 
+			   
+			   <P>To be true, the expansion of a prefix query does not really lead to an OR, but rather to what we call a <em>multiterm query</em>: 
+			   a multiterm query is like an OR, but it can only contain terms as subquery, and behaves under many respects like a single term.
+			   It is unusual to specify manually a multiterm query&mdash;rather, some <em>query expansion</em> mechanism like prefixes should
+			   be used, but if you want to try manually, a multiterm query can be obtained using the
+			   <samp>+</samp> operator. For example:
+			   
+<PRE style="text-align:center">
+house + houses + housing
+</PRE>
+			   
+			   is a correct multiterm query, and it is loosely equivalent to 
+			   
+<PRE style="text-align:center">
+house OR houses OR housing
+</PRE>
+			   
+			   <p>Note, however, that trying to use <samp>+</samp> instead of OR does not work if the subqueries are not simple queries, or if they 
+			   concern different indices. For example:
+
+<PRE style="text-align:center">
+house + title:meeting
+</PRE>
+
+			   would produce an error.
+			   
+			   <P>You may wonder why multiterm queries are needed, if they are essentially the same as OR queries. The first answer is efficiency: a multiterm
+			   query should be more efficient than an OR query. 
+			   
+			   <p>The second answer is more subtle, and has to do with scorers. A scorer is a way to assign a score to a document that satisfies a query. Many 
+			   scorers actually work by summing up suitable partial scores that depend on the document and on one of the terms in the query. Such
+			   partial scores are often function of the count (number of times the term appears in the document) and on the frequency (number of 
+			   documents where the term appears), and they are often really high when the term has a low frequency. The idea behind this is that
+			   if I write:
+			   
+<PRE style="text-align:center">
+computer OR methacrylic
+</PRE>
+			   
+			   a document that satisfies the query because it contains "methacrylic" is more valuable than one that contains the word "computer", being the former
+			   much more infrequent. 
+			   
+			   <p>Nonetheless, trying to use these scorers on automatically expanded queries may lead to many problems. For example, suppose you expanded
+			   
+<PRE style="text-align:center">
+govern*
+</PRE>			   
+
+			   as 
+
+<PRE style="text-align:center">
+government OR governance OR governor OR governing 
+</PRE>			   
+
+				(we are here assuming that the four terms above are the only ones that appear in the dictionary and start with "govern"). Now, since 
+				"governance" is presumably much rarer than "government", we expect all documents containing only "governance" to be given a high score.
+				using
+
+<PRE style="text-align:center">
+government + governance + governor + governing 
+</PRE>			   
+
+				the scorer acts on this bunch of words as a whole, and the frequency is assumed to be the maximum frequency (hence, it is the same
+				for all words), avoiding the "governance"-prevalence problem.
+				
+			<h3>Applying weights</h3>
+			  
+			<p>MG4J allows one to assign to every subquery a nonnegative number, called <em>weight</em>. The
+			actual meaning of the weight is immaterial, but it is postulated that weights only have impact
+			on the scores of documents, not on satisfiability. In other words, some scorers may exploit
+			weight information to decide how to rank documents that satisfy the query, but changing weights
+			should never change the set of satisfying documents.</p>
+			
+			<p>Weights are specified using a postfix syntax, like in:
+
+<PRE style="text-align:center">
+government{1.3} + governance + governor{.2} + governing{.9} 
+</PRE>			   
+
+			and their default value is 1 (in the example above, 1 is the weight that is assigned to
+			the term "governance" as well as to the query as a whole). A more complex example is:
+			
+<PRE style="text-align:center"> 
+((foo | foogna{.3}) &amp; (bar{.5} | bargna)){.7} | reallyimportant{.9}
+</PRE>
+			
+	
+			<h3>True and false</h3>
+			
+			<p>MG4J provides <em>true</em> and <em>false</em> document iterators. A true iterator returns
+			all documents of the collection, and for each document returns {@link it.unimi.di.big.mg4j.search.IntervalIterators#TRUE}.
+			A false iterator returns no document. They are represented, respectively, by the tokens
+			<samp>#TRUE</samp>/<samp>#FALSE</samp> or by the symbols <samp>&#x22A4;</samp>/<samp>&#x22A5;</samp> (Unicode 0x22A4/0x22A5). They
+			obey the standard logical laws, so 
+			
+<PRE style="text-align:center">foo &#x22A4;</PRE>
+			
+			is exactly equivalent to
+			
+<PRE style="text-align:center">foo</PRE>
+			
+			<p>The main usage of true and false iterators is to enforce the syntactic structure of a composite document iterator. For instance,
+			suppose you want to handle queries that are conjunctions of disjunctions, as in
+			
+<PRE style="text-align:center">(foo | bar) (gna | gne)</PRE>
+			
+			<p>The problem is that if one of the disjunctions has exactly one element, the standard MG4J
+			{@link it.unimi.di.big.mg4j.search.DocumentIteratorBuilderVisitor} will eliminate the pleonastic 
+			{@link it.unimi.di.big.mg4j.search.OrDocumentIterator}, obtaining a document iterator that does
+			not reflect exactly the composite structure of the query. To avoid this problem, you can add true or false
+			iterators. For instance, whereas 
+
+<PRE style="text-align:center">(foo | bar) (gna)</PRE>
+			
+			will have just one {@link it.unimi.di.big.mg4j.search.OrDocumentIterator}, 
+			
+<PRE style="text-align:center">(&#x22A5; | foo | bar) (&#x22A5; | gna)</PRE>
+			
+			is guaranteed to have two, with no change in semantics.
+	
+			<h2>Queries available on indices with positions</h2>
+
+			<h3>Ordered conjunctive queries</h3>
+				
+			<P>The operator of ordered conjunction &lt; works like AND, but requires the subqueries to be satisfied in
+			the exact order in which they are specified, even though not necessarily consecutively. For example:
+
+<PRE style="text-align:center">
+meeting &lt; schedule
+</PRE>
+		
+			will only be matched by documents that contain in their subject at least one occurrence of the word "meeting" followed (maybe not immediately)
+			by at least one occurrence of the word schedule. Again, for
+			example, if the subject was 
+			
+<PRE style="text-align:center">
+schedule the meeting (should we schedule this meeting or not)?
+</PRE>
+			
+			then the above query will have only one witness: "meeting (should we schedule"; the
+			other two minimal intervals that contain both words ("schedule the meeting" and
+			"schedule this meeting") are not witnesses because words appear in the wrong order.
+			
+			<p>Note that the ordering between witnesses is <em>strict</em>: for instance, the query
+<PRE style="text-align:center">
+meeting &lt; meeting
+</PRE>
+			has as only witness "meeting (should we schedule meeting". The single word "meeting"
+			alone is <em>not</em> a witness for the query.
+			
+			<p>In this case, it makes no sense (and it is indeed forbidden) to select a different index for the subqueries to be matched. 
+
+
+			<h3>Consecutivity (phrasal queries)</h3>
+			
+			<P>You can specify that you want that some terms appear consecutively by using <samp>"</samp> (quotes). For example:
+				
+<PRE style="text-align:center">
+"meeting schedule"
+</PRE>
+				
+				will be matched if the terms "meeting" and "schedule" appear in this order, and consecutively, in the subject.
+				Inside quotes, you can also use subqueries, surrounding them with parenthesis, like in:
+
+<PRE style="text-align:center">
+"meeting (schedule OR time)"
+</PRE>
+				
+				that is matched by documents whose subject contains the term "meeting" followed by either "schedule" or
+				"time". A witness will this time be necessarily an interval of exactly two words (the first being "meeting"
+				and the second being either "schedule" or "time").
+				
+				<p>More precisely, the quotes operators is satisfied if there is a sequence
+				of <em>consecutive</em> witnesses, with each witness coming from a different
+				subquery, in the same order in which the queries appear.
+				
+				
+				<p>Note that
+		
+<PRE style="text-align:center">
+"meeting schedule OR time"
+</PRE>
+
+				would be invalid: if you want to use operators within quotes, you should do so between parenthesis. 
+				Moreover, within quotes you cannot change index. So you can say
+				
+<PRE style="text-align:center">
+body:"meeting schedule"
+</PRE>
+				
+				but you cannot use
+				
+<PRE style="text-align:center">
+"body:meeting subject:schedule"
+</PRE>
+
+			<P>The symbol <samp>$</samp> (dollar) can be used to specify an arbitrary word in a consecutive query. For instance,
+<PRE style="text-align:center">
+meeting $ schedule
+</PRE>
+			will match "meeting our schedule" as well as "meeting my schedule". You can add dollars also at the start of
+			a phrase, but not at the end (in the latter case, they will be ignored).
+				
+			<h3>Proximity limit</h3>	
+	 
+			  <P>As we have discussed, when a document matches a given query, there will be one or more witnesses within the
+			  document. Each such witness is a consecutive sequence of positions in the document that witness the matching. For
+			  example, consider the query
+			  
+<PRE style="text-align:center">
+body:((meeting schedule) OR "John Smith") OR subject:alarm
+</PRE>
+				
+			  <P>This query will be matched by documents that contain the term "alarm" in their subject, and by documents that contain
+			  either the terms "meeting" and "schedule" or the (exact) sentence "John Smith" in their body.
+			  For every document that matches the query, there will be two sets of matching intervals, one about the body and
+			  the other about the subject; at least one of these two sets will be nonempty (because of the OR keyword).
+			  Intervals concerning the subject will simply be intervals of length one that correspond to the positions where the term
+			  "alarm" appears in the subject.
+			  Intervals concerning the body will be either intervals of length two corresponding to the positions where the sentence
+			  "John Smith" appears in the body, or intervals of length two or more where both "meeting" and "schedule" appear.
+			  
+			  <P>You might want to accept only matching intervals up to a certain length; for example, suppose you don't want
+			  to take into considerations intervals that contain "meeting" and "schedule" too far apart, say at a distance greater than
+			  10 words. You can do this by using the proximity limit operator ~. Just rewrite the previous query as
+
+<PRE style="text-align:center">
+body:((meeting schedule)~10 OR "John Smith") OR subject:alarm
+</PRE>
+			  
+			  <P>This way, you are simply discarding the matching intervals that contain the terms "meeting" and "schedule" if their
+			  length (number of words) is greater than 10 (i.e., if "meeting" and "schedule" are separated by more than 8 words).
+			  
+			  <P>The proximity limit operator can be used at any point, and limits the length of all matching intervals of the
+			  query it is applied to. Note, however, that it may only be used on full-text indices.</p>
+			  
+
+			<h3>Difference</h3>
+			
+			<P>The <em>Brouwerian difference</em> operator is specified using  <samp>-</samp> (minus). It is a rather
+			esoteric operator that is rarely met by the end user, and that, given two subqueries, kills the 
+			witnesses of the first query (the minuend) that contain one or more witnesses of the second query (the subtrahend).
+			By definition, for documents that satisfy the minuend, but not the subtrahend, the witnesses are unchanged. For
+			instance, the following query
+				
+<PRE style="text-align:center">
+schedule < meeting - this
+</PRE>
+				will be matched only if the term "schedule" and the term "meeting" appear in this order <em>without the term "this" inbetween</em>.
+				If the subject is
+<PRE style="text-align:center">
+schedule the meeting (should we schedule this meeting or not)?
+</PRE>
+				the only valid witness is "schedule this meeting", and indeed, the following query
+<PRE style="text-align:center">
+schedule < meeting - (this | the)
+</PRE>
+				will <em>not match at all</em> the subject above, as all witnesses of the minuend are killed by witnesses of the subtrahend.
+				
+				
+			<p>As an additional feature, you can specify a left and a right margin that will be used to enlarge the intervals of the subtrahend. For instance,
+<PRE style="text-align:center">
+"schedule < meeting - [[1,2]] this"
+</PRE>
+			<p>will kill intervals of the minuend that contain the whole fragment "schedule this meeting or" (so no interval will be killed at all).
+
+			<h3>Alignment</h3>
+			
+			<P>The <em>alignment</em> operator is specified using  <samp>^</samp> (circumflex). It is very different in nature
+			from all other operators as it works <em>across indices</em>: it will return the <em>intersection</em> of the
+			intervals returned by each component iterator. Clearly this is meaningful only when working with <em>aligned</em>
+			indices, like those generated by parallel texts containing semantic tagging (see, e.g., {@link it.unimi.di.big.mg4j.document.WikipediaDocumentCollection}). 
+			For instance, assuming that <samp>text</samp>
+			is an index of some text and <samp>sem</samp> contains entity tags like <samp>PERSON</samp>, etc., at the
+			same positions of the corresponding words in <samp>text</samp>, you can use
+				
+<PRE style="text-align:center">
+John ^ sem:PERSON
+</PRE>
+				to look for instances of "John" tagged as a person. Note that all queries involved must be on a single
+				index, and that this is the only restriction. For instance,
+<PRE style="text-align:center">
+( Washington | Francisco ) ^ sem:( PERSON | PLACE )
+</PRE>
+				will search for "Washington" or "Francisco" both as persons and as places.
+
+
+		<h3>Remapping</h3>
+		<p>The <em>remapping</em> operator turns results related to an index to results related to another index. For instance, 
+		using the same example as for the alignment operator, 
+<PRE style="text-align:center">
+sem:PERSON {{ sem -> text }}
+</PRE>
+		would return the same documents and positions of the query <samp>sem:PERSON</samp>, but those documents and positions would
+		be viewed as coming from the field <samp>text</samp>.
+		
+		<p>There are two main useful consequences: first of all, snippets will be displayed using content from the <samp>text</samp>
+		field, so MG4J will display snippets containing readble text, and not tags. The second consequence is that now the document iterator
+		associated with the query return results on <samp>text</samp>, so it can be freely mixed with positional operators. For instance,
+<PRE style="text-align:center">
+"(sem:PERSON {{ sem -> text }}) finds"
+</PRE>
+		searches for a person's name immediately followed by the term <samp>finds</samp>.
+		
+		<p>Many remappings can be specified in a single appearance of the operator, separated by a semicolon.
+
+		<h2>Queries available on payload-based indices</h2>
+	    
+		<p>Actually, the atomic queries discussed above (term, prefix, etc.) can be used with <em>standard</em> indices, that is,
+		indices of fields containing text. For <em>payload-based indices</em>, which represent document metadata such as dates,
+		the standard query available in MG4J is a <em>range query</em> in which the first and last valid values are specified by
+		the user. The resulting query is satisfying by all documents whose field is in the range. Both the first and the last value can be omitted.
+		for instance, the following query
+<PRE style="text-align:center">
+date:[ 20/2/2007 .. 23/2/2007 ]
+</PRE>
+		will search for documents between 20 February and 23 February 2007, inclusive, whereas the query
+<PRE style="text-align:center">
+date:[ .. 23/2/2007 ]
+</PRE>
+		will search for documents <em>up to</em> 23 February 2007. Note that in the built-in parser
+		<strong>spaces are necessary</strong>.
+		They make it possible to separate the different tokens composing the query.
+		
+		<p>Range queries must <em>not</em> be used as a generic query mechanism, but rather to refine the result of
+		a query over document content: a ranked query composed uniquely by a range query will have to scan <em>the whole payload-based index</em>
+		just to return a few results.
+
+		<h1>Building and composing document iterators</h1>
+		
+		<P>The {@link it.unimi.di.big.mg4j.search} package contains all the classes needed to build a query
+		and to match it against a certain collection of indices. This is actually only the semantic
+		counterpart to a query; for the syntactic aspects, please refer to the {@link it.unimi.di.big.mg4j.query.nodes} package. </p>
+		
+		<h2>Basic classes</h2>
+		
+		<P>An {@link it.unimi.dsi.util.Interval} represents a consecutive set of natural numbers, that is, a witness within a document
+		(in this case, numbers represent the positions within a document: 0 is the position of the first word,
+		1 is the position of the second and so on). An {@link it.unimi.di.big.mg4j.search.IntervalIterator} is an
+		iterator that returns intervals: typically, an interval iterator will return all intervals witnessing
+		a certain query for a certain document (and a certain index).
+
+ 		<P>For example, the query
+<PRE style="text-align:center">
+body:((meeting schedule)~10 OR "John Smith") OR subject:alarm
+</PRE>
+		will give rise to an interval iterator for the body and an interval iterator for the subject: the former
+		will return intervals within the body witnessing the first part of the query, and the latter will return the intervals
+		the intervals witnessing the second part of the query. Note that even upon a matching document either iterator
+		may actually return no interval (because the overall query is disjunctive); nonetheless, the two iterators
+		cannot be both empty.
+		
+		<P>It is always understood that intervals are returned in increasing order (of their left, or equivalently right, extreme).</p>
+		
+		<P>A {@link it.unimi.di.big.mg4j.search.DocumentIterator} is used to scan a whole collection of indices
+		for a query. At every given moment, the iterator will be able to return the next document matching the query,
+		and, for full-text indices, you will also be able to {@linkplain it.unimi.di.big.mg4j.search.DocumentIterator#intervalIterator(it.unimi.di.big.mg4j.index.Index) 
+		get the interval iterators of the witnesses for that document and for a specific index}.</p>
+
+		<h2>Obtaining and composing document iterators</h2>
+
+		<P>The simplest kind of {@link it.unimi.di.big.mg4j.search.DocumentIterator} you can build is an {@link it.unimi.di.big.mg4j.index.IndexIterator}: it
+		is a document iterator that scans a specific index for a specific term. You don't actually build an index iterator directly, but
+		you rather obtain one by calling the {@link it.unimi.di.big.mg4j.index.Index#documents(CharSequence)} (or, equivalently,
+		{@link it.unimi.di.big.mg4j.index.IndexReader#documents(CharSequence)}) method, that returns the
+		set of documents containing a given term (and witnesses will be the single occurrences of such term).</p>		
+		
+		<P>Hence, for example, the following snippet opens a full-text index whose basename is <tt>mail-subject</tt>, and
+		prints out all documents containing the word "meeting", each with the sequence of positions where the word
+		appears (all intervals will be actually singletons).</p>
+		
+<PRE>
+	Index subjectIndex = Index.getInstance( "mail-subject" );
+	DocumentIterator it = subjectIndex.documents( "meeting" );
+	for( long d; ( d = it.nextDocument() ) != END_OF_LIST; ) { 
+			System.out.println( "Document #: " + d );
+			System.out.print( "\tPositions:" );
+			IntervalIterator intervalIterator = it.intervalIterator();
+			for ( Interval interval; ( interval = intervalIterator.nextInterval() ) != null; )
+				System.out.print( " " + interval );
+			System.out.println();
+	}
+</PRE>
+
+		<P>A number of classes in this package can be used to compose iterators; more precisely, for each
+		query operator discussed above there is a corresponding class in this package. Each such class has
+		a factory method that allows one to build new document iterators by composing existing iterators.
+		</p>
+		
+		<P>For example, the following snippet shows how to search for mails containing the words "meeting",
+		"schedule" and "monday".</P>
+		
+<PRE>
+	Index subjectIndex = Index.getInstance( "mail-subject" );
+	DocumentIterator it = AndDocumentIterator.getInstance( 
+		subjectIndex.documents( "meeting" ), 
+		subjectIndex.documents( "schedule" ), 
+		subjectIndex.documents( "monday" ) 
+	);
+	for( long d; ( d = it.nextDocument() ) != END_OF_LIST; ) { 
+			System.out.println( "Document #: " + d );
+			System.out.print( "\tPositions:" );
+			IntervalIterator intervalIterator = it.intervalIterator();
+			for ( Interval interval; ( interval = intervalIterator.nextInterval() ) != null; )
+				System.out.print( " " + interval );
+			System.out.println();
+	}
+</PRE>
+		
+		<p>For what concerns weights, there is no composition class for them: rather, every document iterator
+		has a weight (a double), that one can {@linkplain it.unimi.di.big.mg4j.search.DocumentIterator#weight(double) set} 
+		or {@linkplain it.unimi.di.big.mg4j.search.DocumentIterator#weight() get}, and whose meaning and usage is
+		left to the implementors of scorers.</p>
+
+		<P>The following table shows the correspondence between query operators and composition classes:</p>
+		
+		<table summary="Operators and corresponding classes">
+			<thead>
+				<tr>
+					<th>Operator</th><th>Class</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr><td>AND &amp; &#x2227; (conjunction)</td><td>{@link it.unimi.di.big.mg4j.search.AndDocumentIterator}</td></tr>
+				<tr><td>OR | &#x2228; (disjunction)</td><td>{@link it.unimi.di.big.mg4j.search.OrDocumentIterator}</td></tr>
+				<tr><td>NOT ! (negation)</td><td>{@link it.unimi.di.big.mg4j.search.NotDocumentIterator}</td></tr>
+				<tr><td>+ (multiterm)</td><td>{@link it.unimi.di.big.mg4j.index.MultiTermIndexIterator}</td></tr>
+				<tr><td>#TRUE &#x22A4;</td><td>{@link it.unimi.di.big.mg4j.search.TrueDocumentIterator}</td></tr>	
+				<tr><td>#FALSE &#x22A5;</td><td>{@link it.unimi.di.big.mg4j.search.FalseDocumentIterator}</td></tr>	
+				<tr><td>"..." (phrase)</td><td>{@link it.unimi.di.big.mg4j.search.ConsecutiveDocumentIterator}</td></tr>
+				<tr><td>&lt; (ordered conjunction)</td><td>{@link it.unimi.di.big.mg4j.search.OrderedAndDocumentIterator}</td></tr>
+				<tr><td>~ (proximity)</td><td>{@link it.unimi.di.big.mg4j.search.LowPassDocumentIterator}</td></tr>
+				<tr><td>- (difference)</td><td>{@link it.unimi.di.big.mg4j.search.DifferenceDocumentIterator}</td></tr>
+				<tr><td>^ (alignment)</td><td>{@link it.unimi.di.big.mg4j.search.AlignDocumentIterator}</td></tr>
+				<tr><td>{{ .. }} (remap)</td><td>{@link it.unimi.di.big.mg4j.search.RemappingDocumentIterator}</td></tr>
+				<tr><td>[ .. ] (range)</td><td>{@link it.unimi.di.big.mg4j.search.PayloadPredicateDocumentIterator}</td></tr>
+			</tbody>
+		</table>
+
+		<p>Note, however, that {@link it.unimi.di.big.mg4j.search.PayloadPredicateDocumentIterator} is actually a completely generic
+		predicate-based class that just returns documents whose payload satisfies a predicate.
+
+		<h2>Queries and document iterators</h2>
+
+		<P>Even though it is perfectly legal to build document iterators by using these classes directly, this is <strong>not</strong> the
+		natural way to do that. One should rather build a syntactic object corresponding to a query, and then make it
+		into a document iterator that is, in some sense, the semantic counterpart of the query itself. To have more
+		information about how this works exaclty, please consult the overview of the {@link it.unimi.di.big.mg4j.query.nodes} package.</p>
+		
+		<h2>Pathological cases</h2>
+		
+		<p>Due to minimality of intervals, sometimes the results of a query might be unexpected. This happens in particular when
+		some cancellation of non-minimal intervals happens. For instance, consider the query				
+<PRE style="text-align:center">
+"is ( really | "really really" ) good"
+</PRE>
+				
+		<p>We could expect that this query is satisfied by <samp>is really really good</samp>. But this does not happen, because the semantics
+		of <samp>really | "really really"</samp> is an antichain of minimal intervals. Since whenever <samp>really really</samp> appears,
+		also <samp>really</samp> appears, the intervals generated by the positions of <samp>really</samp> will cancel, when the disjunction
+		is computed, the intervals generated by the positions of <samp>"really really"</samp>. So the minimal-interval semantics of <samp>really</samp>
+		and <samp>really | "really really"</samp> is exactly the same. We can of course get what we want using
+<PRE style="text-align:center">
+"is really good" | "is really really good",
+</PRE>
+		but the example shows that some care must be exercised.
+		
+
+  </body>
+</html>

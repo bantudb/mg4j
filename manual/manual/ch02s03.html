@@ -1,0 +1,194 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Scan: Building batches</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"><link rel="prev" href="ch02s02.html" title="Preamble: terms, dictionaries and term-related maps"><link rel="next" href="ch02s04.html" title="Combining batches"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Scan: Building batches</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s02.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Behind the scenes: The indexing process</th><td width="20%" align="right"> <a accesskey="n" href="ch02s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907718160"></a>Scan: Building batches</h2></div></div></div><p>In this step, <span class="application">MG4J</span> scans the whole
+      document collection producing the so-called batches. Batches are
+      subindices limited to a subset of documents, and they are created each
+      time the number of indexed documents reaches a user-provided threshold,
+      or when the available memory is too little.</p><p>An occurrence is a group of three numbers, say
+      (<code class="varname">t</code>,<code class="varname">d</code>,<code class="varname">p</code>),
+      meaning that <span class="emphasis"><em>term with index <code class="varname">t</code> appears in
+      document <code class="varname">d</code> at position
+      <code class="varname">p</code></em></span>. Here, both the term and document are
+      represented by a long integer, called, in the second case, the
+      <em class="firstterm">document pointer</em>, which is in most cases the
+      position of the document in the document collection (0 for the first
+      document, 1 for the second document and so on). Position is an integer
+      that represents where the term occurs in the document.</p><p>To understand what the scanning phase really does, suppose you
+      have three documents:</p><div class="informaltable"><table class="informaltable" border="1"><colgroup><col><col></colgroup><thead><tr><th>Document pointer</th><th>Document</th></tr></thead><tbody><tr><td>0</td><td>I love you</td></tr><tr><td>1</td><td>God is love</td></tr><tr><td>2</td><td>Love is blind</td></tr><tr><td>3</td><td>Blind justice</td></tr></tbody></table></div><p>Here is the dictionary produced initially by the
+      scanning phase:</p><div class="informaltable"><table class="informaltable" border="1"><colgroup><col><col></colgroup><thead><tr><th>Term index</th><th>Term</th></tr></thead><tbody><tr><td>0</td><td>blind</td></tr><tr><td>1</td><td>god</td></tr><tr><td>2</td><td>i</td></tr><tr><td>3</td><td>is</td></tr><tr><td>4</td><td>justice</td></tr><tr><td>5</td><td>love</td></tr><tr><td>6</td><td>you</td></tr></tbody></table></div><p>Now, at least conceptually, this is the list of
+      occurrences:</p><div class="informaltable"><table class="informaltable" border="1"><colgroup><col></colgroup><thead><tr><th>Occurrences (in the same order as they are found when
+                scanning the documents)</th></tr></thead><tbody><tr><td>(2,0,0) (5,0,1) (6,0,2) (1,1,0) (3,1,1) (5,1,2) (5,2,0)
+                (3,2,1) (0,2,2) (0,3,0) (4,3,1)</td></tr></tbody></table></div><p>This simply means that:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>term 2 (<code class="literal">I</code>) appears in document 0 at
+          position 0;</p></li><li class="listitem"><p>term 5 (<code class="literal">love</code>) appears in document 0 at
+          position 1;</p></li><li class="listitem"><p>term 6 (<code class="literal">you</code>) appears in document 0 at
+          position 2;</p></li></ul></div><p>and so on. Inverted lists can now be obtained by re-sorting the
+      occurrences in increasing term order, so that occurrences relative to
+      the same term appear consecutively:</p><div class="informaltable"><table class="informaltable" border="1"><colgroup><col><col></colgroup><thead><tr><th>Term</th><th>Occurrences</th></tr></thead><tbody><tr><td>0 (blind)</td><td>(0,2,2) (0,3,0)</td></tr><tr><td>1 (god)</td><td>(1,1,0)</td></tr><tr><td>2 (i)</td><td>(2,0,0)</td></tr><tr><td>3 (is)</td><td>(3,1,1) (3,2,1)</td></tr><tr><td>4 (justice)</td><td>(4,3,1)</td></tr><tr><td>5 (love)</td><td>(5,0,1) (5,1,2) (5,2,0)</td></tr><tr><td>6 (you)</td><td>(6,0,2)</td></tr></tbody></table></div><p>Now, the indexer must:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>scan all documents and extract occurrences;</p></li><li class="listitem"><p>if the list of terms have not yet been obtained, gather new
+          terms as they are found;</p></li><li class="listitem"><p>sort the terms in alphabetical order, renumbering all
+          occurrences correspondingly;</p></li><li class="listitem"><p>(if required) renumber the documents and sort them in
+          increasing order,</p></li><li class="listitem"><p>sort, at least partially, the occurrences found in increasing
+          term order;</p></li><li class="listitem"><p>when the number of accumulated documents reaches a given
+          threshold, create a subindex containing the current batch of
+          occurrences.</p></li></ul></div><p>The last point needs further explanation. Since occurrences are
+      <span class="emphasis"><em>a lot</em></span> it is not reasonable to think that they can
+      be all kept in memory. What the indexing pass does is keeping an
+      internal batch where occurrences are stored as they are found; when the
+      batch is full, it is ordered by term, and flushed out on disk under the
+      form of a subindex. Every batch will be in term order, but different
+      batches may (and usually, will) contain occurrences of the same
+      termG.</p><p>Getting back to the example given in Chapter 1, where we indexed
+      the collection <code class="filename">javadoc.collection</code>, the basename of
+      the resulting index is going to be <code class="filename">javadoc</code> (as
+      usual, completed with the field name). After running
+      <code class="classname">IndexBuilder</code>, we get the following files:
+      </p><pre class="screen">-rw-r--r--    1 vigna    vigna         430 May 13 12:02 javadoc-text.cluster.properties
+-rw-r--r--    1 vigna    vigna         144 May 13 12:02 javadoc-text.cluster.strategy
+-rw-r--r--    1 vigna    vigna         20k May 13 12:02 javadoc-text.frequencies
+-rw-r--r--    1 vigna    vigna         29k May 13 12:02 javadoc-text.globcounts
+-rw-r--r--    1 vigna    vigna        1.1M May 13 12:02 javadoc-text.index
+-rw-r--r--    1 vigna    vigna         52k May 13 12:02 javadoc-text.offsets
+-rw-r--r--    1 vigna    vigna        5.8M May 13 12:02 javadoc-text.positions
+-rw-r--r--    1 vigna    vigna         54k May 13 12:02 javadoc-text.posnumbits
+-rw-r--r--    1 vigna    vigna         387 May 13 12:02 javadoc-text.properties
+-rw-r--r--    1 vigna    vigna        9.4k May 13 12:02 javadoc-text.sizes
+-rw-r--r--    1 vigna    vigna        1.2k May 13 12:02 javadoc-text.stats
+-rw-r--r--    1 vigna    vigna        175k May 13 12:02 javadoc-text.termmap
+-rw-r--r--    1 vigna    vigna        412k May 13 12:02 javadoc-text.terms
+-rw-r--r--    1 vigna    vigna         14k May 13 12:01 javadoc-text@0.frequencies
+-rw-r--r--    1 vigna    vigna         19k May 13 12:01 javadoc-text@0.globcounts
+-rw-r--r--    1 vigna    vigna        3.8M May 13 12:01 javadoc-text@0.index
+-rw-r--r--    1 vigna    vigna         40k May 13 12:01 javadoc-text@0.offsets
+-rw-r--r--    1 vigna    vigna         37k May 13 12:01 javadoc-text@0.posnumbits
+-rw-r--r--    1 vigna    vigna         342 May 13 12:01 javadoc-text@0.properties
+-rw-r--r--    1 vigna    vigna        4.7k May 13 12:01 javadoc-text@0.sizes
+-rw-r--r--    1 vigna    vigna        264k May 13 12:01 javadoc-text@0.terms
+-rw-r--r--    1 vigna    vigna         11k May 13 12:02 javadoc-text@1.frequencies
+-rw-r--r--    1 vigna    vigna         15k May 13 12:02 javadoc-text@1.globcounts
+-rw-r--r--    1 vigna    vigna        2.7M May 13 12:02 javadoc-text@1.index
+-rw-r--r--    1 vigna    vigna         31k May 13 12:02 javadoc-text@1.offsets
+-rw-r--r--    1 vigna    vigna         29k May 13 12:02 javadoc-text@1.posnumbits
+-rw-r--r--    1 vigna    vigna         342 May 13 12:02 javadoc-text@1.properties
+-rw-r--r--    1 vigna    vigna        4.5k May 13 12:02 javadoc-text@1.sizes
+-rw-r--r--    1 vigna    vigna        213k May 13 12:02 javadoc-text@1.terms
+-rw-r--r--    1 vigna    vigna        3.1k May 13 12:02 javadoc-text@2.frequencies
+-rw-r--r--    1 vigna    vigna        4.2k May 13 12:02 javadoc-text@2.globcounts
+-rw-r--r--    1 vigna    vigna        234k May 13 12:02 javadoc-text@2.index
+-rw-r--r--    1 vigna    vigna         10k May 13 12:02 javadoc-text@2.offsets
+-rw-r--r--    1 vigna    vigna        9.3k May 13 12:02 javadoc-text@2.posnumbits
+-rw-r--r--    1 vigna    vigna         336 May 13 12:02 javadoc-text@2.properties
+-rw-r--r--    1 vigna    vigna         221 May 13 12:02 javadoc-text@2.sizes
+-rw-r--r--    1 vigna    vigna         80k May 13 12:02 javadoc-text@2.terms
+-rw-r--r--    1 vigna    vigna         429 May 13 12:02 javadoc-title.cluster.properties
+-rw-r--r--    1 vigna    vigna         144 May 13 12:02 javadoc-title.cluster.strategy
+-rw-r--r--    1 vigna    vigna        1.5k May 13 12:02 javadoc-title.frequencies
+-rw-r--r--    1 vigna    vigna        1.5k May 13 12:02 javadoc-title.globcounts
+-rw-r--r--    1 vigna    vigna         25k May 13 12:02 javadoc-title.index
+-rw-r--r--    1 vigna    vigna        5.2k May 13 12:02 javadoc-title.offsets
+-rw-r--r--    1 vigna    vigna        9.9k May 13 12:02 javadoc-title.positions
+-rw-r--r--    1 vigna    vigna        1.6k May 13 12:02 javadoc-title.posnumbits
+-rw-r--r--    1 vigna    vigna         376 May 13 12:02 javadoc-title.properties
+-rw-r--r--    1 vigna    vigna        2.5k May 13 12:02 javadoc-title.sizes
+-rw-r--r--    1 vigna    vigna        1.1k May 13 12:02 javadoc-title.stats
+-rw-r--r--    1 vigna    vigna         31k May 13 12:02 javadoc-title.termmap
+-rw-r--r--    1 vigna    vigna         61k May 13 12:02 javadoc-title.terms
+-rw-r--r--    1 vigna    vigna         752 May 13 12:01 javadoc-title@0.frequencies
+-rw-r--r--    1 vigna    vigna         752 May 13 12:01 javadoc-title@0.globcounts
+-rw-r--r--    1 vigna    vigna         11k May 13 12:01 javadoc-title@0.index
+-rw-r--r--    1 vigna    vigna        2.1k May 13 12:01 javadoc-title@0.offsets
+-rw-r--r--    1 vigna    vigna         791 May 13 12:01 javadoc-title@0.posnumbits
+-rw-r--r--    1 vigna    vigna         329 May 13 12:01 javadoc-title@0.properties
+-rw-r--r--    1 vigna    vigna        1.2k May 13 12:01 javadoc-title@0.sizes
+-rw-r--r--    1 vigna    vigna         32k May 13 12:01 javadoc-title@0.terms
+-rw-r--r--    1 vigna    vigna         761 May 13 12:02 javadoc-title@1.frequencies
+-rw-r--r--    1 vigna    vigna         761 May 13 12:02 javadoc-title@1.globcounts
+-rw-r--r--    1 vigna    vigna         11k May 13 12:02 javadoc-title@1.index
+-rw-r--r--    1 vigna    vigna        2.1k May 13 12:02 javadoc-title@1.offsets
+-rw-r--r--    1 vigna    vigna         883 May 13 12:02 javadoc-title@1.posnumbits
+-rw-r--r--    1 vigna    vigna         330 May 13 12:02 javadoc-title@1.properties
+-rw-r--r--    1 vigna    vigna        1.2k May 13 12:02 javadoc-title@1.sizes
+-rw-r--r--    1 vigna    vigna         29k May 13 12:02 javadoc-title@1.terms
+-rw-r--r--    1 vigna    vigna          41 May 13 12:02 javadoc-title@2.frequencies
+-rw-r--r--    1 vigna    vigna          41 May 13 12:02 javadoc-title@2.globcounts
+-rw-r--r--    1 vigna    vigna         400 May 13 12:02 javadoc-title@2.index
+-rw-r--r--    1 vigna    vigna          91 May 13 12:02 javadoc-title@2.offsets
+-rw-r--r--    1 vigna    vigna          44 May 13 12:02 javadoc-title@2.posnumbits
+-rw-r--r--    1 vigna    vigna         320 May 13 12:02 javadoc-title@2.properties
+-rw-r--r--    1 vigna    vigna          57 May 13 12:02 javadoc-title@2.sizes
+-rw-r--r--    1 vigna    vigna        1.2k May 13 12:02 javadoc-title@2.terms</pre><p>As
+      you can see, there are several new files (they could be more or less,
+      depending on the number of documents stored on your system): each file
+      whose names starts with <code class="filename">javadoc-text@</code> belongs to a
+      certain subindex, that was generated using a batch of occurrences. The
+      <code class="filename">javadoc-text.properties</code> file contains global
+      information pertaining all subindices. Other files, such as the
+      <code class="filename">.sizes</code> files, contain the list of the document
+      sizes (the number of words contained in each document). The latter is
+      useful for statistical purposes, but it might also be used by the
+      indices, to establish better compression methods for the inverted lists.
+      The <code class="filename">.terms</code> files, instead, contains the terms
+      indexed in each batch. Note that each subindex can be queried
+      separately, albeit you will need to generate manually a term map if you
+      want to write query by term and not by term number
+      (<code class="classname">IndexBuilder</code> creates such a map just for the
+      whole index). The class
+      <code class="classname">it.unimi.dsi.util.ImmutableExternalPrefixMap</code>, for
+      instance, can be used to this purpose.</p><p>Now, if you look into the
+      <code class="filename">javadoc-text.properties</code> file, you will find some
+      information:</p><pre class="screen">documents = 4090
+terms = 32634
+postings = 976736
+maxcount = 3425
+indexclass = it.unimi.di.big.mg4j.index.FileHPIndex
+skipquantum = 0
+skipheight = 8
+coding = FREQUENCIES:GAMMA
+coding = POINTERS:DELTA
+coding = COUNTS:GAMMA
+coding = POSITIONS:DELTA
+termprocessor = it.unimi.di.big.mg4j.index.DowncaseTermProcessor
+batches = 3
+field = text
+size = 57884884
+maxdocsize = 53057
+occurrences = 4599358</pre><p>You can see some the overall number of
+      occurrences (4599358), the number of batches (3) and the maximum size
+      (number of words) of a document (53057). Similar information is
+      available on a per-batch basis looking at the remaining
+      <code class="filename">.properties</code> files.</p><p>The files starting with <code class="filename">javadoc-text.cluster</code>
+      present a <span class="emphasis"><em>cluster view</em></span> of the set of batches just
+      built. Essentially, they provide dynamic access to the entire set of
+      batches as a single index. More information can be found in the
+      documentation of the package
+      <code class="literal">it.unimi.di.big.mg4j.index.cluster</code>.</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907782432"></a>Time/space requirements</h3></div></div></div><p>The scanning phase is, by far, the most time/space consuming.
+        MG4J will work with little memory, but more memory will make it
+        possible to build larger batches, which can then be merged more
+        quickly and without opening too many files. You shoiuld set the JVM
+        memory as high as you can go, and a number of documens per batch that
+        does not cause too many compactions (or most of the time will be spent
+        in the garbage collector), always keeping in mind that larger batches
+        are better. If you experience out-of-memory errors (but it shouldn't
+        happen!), just lower the number of documents per batch. Note that the
+        memory compaction performed by MG4J seems to make the JVM erroneously
+        think that there is too much garbage collection, sometimes resulting
+        in an <code class="classname">OutOfMemoryError</code> due to excessive
+        garbage-collector overhead. Please use the option
+        <code class="option">-XX:-UseGCOverheadLimit</code> to overcome the
+        problem.</p><p>The kind of document sequence is going to influence heavily the
+        indexing time. The best way of providing data to MG4J is to stream
+        documents to the standard input, separating them with a character
+        (usually, newline or NUL). This is the default choice if you do not
+        specify explicitly a collection. Other kind of collections (e.g.,
+        database-based collections) might be reasonably efficient, but, for
+        instance, do not expect great results from document sequences
+        retreving documents directly from the file system one at a
+        time.</p><p>Remember that the indexer will produce a number of subindices,
+        and this number will depend on the overall number of occurrences
+        (which is, essentially, proportional to the total document size).
+        Combining these subindices (or accessing them using an on-the-fly
+        index combiner) has a cost in time that increases logarithmically with
+        the number of subindices. Moreover, for each subindex an on-the-fly
+        combiner needs to allocate buffers, so the memory cost for batch or
+        on-the-fly combination increases linearly with the number of
+        subindices. The rule of thumb is that you should try to make batches
+        as large as possible, but you should also check the logs because
+        working with an almost full heap can slow down Java significantly, and
+        exaggeratly large batches can cause slowdown because of the large
+        number of cache misses.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Preamble: terms, dictionaries and term-related maps </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Combining batches</td></tr></table></div></body></html>

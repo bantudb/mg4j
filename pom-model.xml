@@ -1,0 +1,36 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>${ivy.pom.groupId}</groupId>
+  <artifactId>${ivy.pom.artifactId}</artifactId>
+  <packaging>jar</packaging>
+  <name>MG4J (big)</name>
+  <version>${ivy.pom.version}</version>
+  <description>MG4J (Managing Gigabytes for Java) is a free full-text search engine for large document collections written in Java. The big version is a fork of the original MG4J that can handle more than 2^31 terms and documents.</description>
+  <url>http://mg4j.di.unimi.it/</url>
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License Version 3+</name>
+      <url>http://www.gnu.org/licenses/lgpl.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git://github.com/vigna/MG4J.git</connection>
+    <url>https://github.com/vigna/MG4J</url>
+  </scm>
+  <developers>
+
+    <developer>
+      <id>boldi</id>
+      <name>Paolo Boldi</name>
+      <email>boldi@di.unimi.it</email>
+    </developer>
+
+    <developer>
+      <id>vigna</id>
+      <name>Sebastiano Vigna</name>
+      <email>vigna@di.unimi.it</email>
+    </developer>
+
+  </developers>
+</project>

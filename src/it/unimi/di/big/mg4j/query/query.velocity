@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Strict//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>MG4J: $q</title>
+<style type="text/css">
+
+* { font-family: arial, sans-serif }
+
+samp, code, tt, pre {
+	font-family: monospace;
+}
+
+body {
+	background: white;
+}
+
+img {
+	border: none;
+}
+
+h1, h2, h3, h4 {
+        font-family: luxi sans,sans-serif;
+}
+
+h1, h2 {
+        border-bottom: 1px solid gray;
+}
+
+h1 {
+        font-size: 1.25em;
+}
+
+h2 {
+        font-size: 1.1em;
+}
+
+h3 {
+        font-size: 1.05em;
+}
+
+a:hover {
+	color: #f00;
+}
+
+#home {
+        color:black;
+        font-size: 150%;
+        text-decoration: none;
+}
+
+a:visited#home {
+        color: black;
+}
+
+a:hover#home {
+        color: red;
+}
+
+
+
+.result {
+	margin-bottom: 1.5em;
+}
+
+div.text {
+	padding-left: 1em;
+}
+
+div.text p {
+	margin-top: 0;
+}
+
+h1 a {
+	color: black;
+	text-decoration: none;
+}
+
+h3 a {
+	font-weight: normal;
+}
+
+h3 {
+	margin-bottom: .1em
+}
+
+div#buttons {
+	text-align: center;
+	font-size: 120%;
+	text-decoration: none;
+}
+
+div#buttons a {
+	text-decoration: none;
+	border: thin solid gray;
+	padding: .1em .3em .15em;
+	margin: .5em .1em;
+	background: #eee;
+	border-radius: 2px;
+	-moz-border-radius: 2px;
+
+}
+
+span.toplinks a {
+	font-size: 80%;
+	margin: 0em .3em;
+}
+
+</style>
+</head>
+<body onload="javascript:document.getElementById('q').focus()">
+<h1><a href="http://mg4j.dsi.unimi.it/">MG4J</a></h1>
+<table width="100%" border=0 cellpadding=0 cellspacing=0><tr>
+<td valign=middle><form style="margin:0" action="$action" accept-charset="utf-8"><p style="margin:0"><input type=text name=q id=q value="$!q" size=80 maxlength=20000><input type=submit value=Search>
+</form> <a href="/Help">Learn syntax</a>
+#if ($errmsg)
+</table>
+<p>Syntax error: $errmsg
+#else
+#if ($q && $result.size() != 0)
+
+#set ($end = $start + $result.size() - 1)
+<td valign=middle align=right>Results $start&minus;$end of $globNumItems for <strong>$q</strong> ($time ms; $speed items/s)
+</table>
+
+## Results
+
+#foreach($i in $result)
+<div class=result>
+<h3>
+#if ($i.uri())
+<a href="$i.uri()">$i.title()</a>
+#else
+$i.title()
+#end
+ [$i.score(6)]</h3>
+<div class=text>
+#if ($i.text()) 
+$i.text()
+#end
+</div>
+</div>
+#end
+
+## Buttons
+
+#if ($result.size() < $globNumItems)
+<div id=buttons>
+#set ($prev = $start - $maxNumItems)
+
+#if ($prev >= 0)
+<a href="?q=$qUrl&amp;s=$prev&amp;m=$maxNumItems">⇦ Previous</a>
+#end
+
+#set ($p = $start - $start % ($maxNumItems * 10))
+#foreach($i in [0..9])
+#if ($p < $globNumItems)
+#set ($page = $p / $maxNumItems + 1)
+#if ($p == $start) 
+<strong>$page</strong>
+#else
+<a href="?q=$qUrl&amp;s=$p&amp;m=$maxNumItems">$page</a> 
+#end
+#set ($p = $p + $maxNumItems)
+#end
+#end
+
+#set ($next = $start + $maxNumItems)
+#if ($next < $globNumItems)
+<a href="?q=$qUrl&amp;s=$next&amp;m=$maxNumItems">Next ⇨</a>
+#end
+</div>
+#end
+
+#else
+</table>
+
+#if ($q.length() > 0)
+<p>No results for this query ($time ms).
+#end
+
+#end
+#end
+</body>
+</html>

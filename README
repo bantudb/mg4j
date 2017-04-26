@@ -1,0 +1,20 @@
+MG4J (Managing Gigabytes for Java) is a free full-text search engine for
+large document collections written in Java. This distribution is the big
+version of MG4J, which is able to handle up to 2^63 terms and documents.
+Indices written by the standard version of MG4J are usable with the big
+version.
+
+The starting point for understanding MG4J is a look at the overview of the
+Javadoc documentation, and at the manual. Then, the Javadoc class
+documentation can provide more insights. Please look at the overview
+section for package dependencies.
+
+We know that the documentation is not complete, and sometimes difficult to
+locate. Please report any major difficulties in understanding a part of MG4J,
+so we can build better docs!
+
+MG4J is free software distributed under the GNU Lesser General Public
+License.
+
+Sebastiano Vigna (vigna@acm.org)
+Paolo Boldi (boldi@di.unimi.it)

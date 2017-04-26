@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>MG4J: Managing Gigabytes for Java</title>
+  </head>
+
+  <body>
+
+    <P>Index generation and access.
+
+    <P>This package contains the classes that handle index generation and
+    access.  The interval iterators defined in {@link it.unimi.di.big.mg4j.search}
+	build upon the classes of this package to provide answer to queries using interval semantics,
+	but it is also possible to access an index directly.
+	
+	<P>You can easily build indices using the tools in {@link it.unimi.di.big.mg4j.tool}. Once an index
+	has been built, it can be opened using an {@link it.unimi.di.big.mg4j.index.Index} object, which
+	gathers metadata that is necessary to access the index. You do not create an  {@link it.unimi.di.big.mg4j.index.Index}
+	with a constructor: rather, you use the static factory {@link  
+	it.unimi.di.big.mg4j.index.Index#getInstance(CharSequence)} (or one of its variants) to create an instance.
+	This is necessary so that different kind of indices can be treated transparently: for example, the factory
+	may return a {@link it.unimi.di.big.mg4j.index.cluster.IndexCluster} if the index is actually a cluster,
+	but you do not need to know that.
+	
+	<P>From an {@link it.unimi.di.big.mg4j.index.Index},
+	you can easily obtain either an {@link it.unimi.di.big.mg4j.index.IndexReader}, which allows to
+	scan sequentially or randomly the index. In turn from an {@link it.unimi.di.big.mg4j.index.IndexReader}
+	you can obtain a {@link  it.unimi.di.big.mg4j.index.IndexIterator}
+	returning the documents containing a certain term and the position of the term within the document.
+
+	<P>But there is more: an {@link  it.unimi.di.big.mg4j.index.IndexIterator}
+		is a kind of {@link  it.unimi.di.big.mg4j.search.DocumentIterator}, and 
+		{@link  it.unimi.di.big.mg4j.search.DocumentIterator}s can be combined in several ways
+	using the classes of the package {@link it.unimi.di.big.mg4j.search}: for instance, you can combine
+	document iterators using AND/OR. Note that you can combine document iterators on <em>different</em>
+	indices, but of course the operation is meaningful only if the two indices contain different information
+	about the same document collection (e.g., title and main text).
+	
+	<P>More importantly, if the index is full text (the default) for each document containing the term you can get
+		interval iterators that return intervals representing extents of text satisfying the query: for 
+		instance, in case of an AND of two terms, the intervals will contain <em>both</em> terms.
+		
+		
+    <H2>Structure of an inverted index</H2>
+    
+    <P>An inverted index is made by a sequence of inverted lists (one inverted
+    list for each term). Inverted lists are made by document records: each
+    document record contains information about the occurrences of the term
+    within a certain document.
+
+    <P>The number of documents in which a term appear, that is, the length
+    of the inverted list of the term, is called the <em>{@linkplain it.unimi.di.big.mg4j.index.IndexIterator#frequency() frequency}</em>.
+
+    <P>Each document record contains the (document) <em>{@linkplain it.unimi.di.big.mg4j.index.IndexIterator#document() pointer}</em>,
+    which identifies the document within the collection; optionally, 
+    the <em>{@linkplain it.unimi.di.big.mg4j.index.IndexIterator#count() count}</em>, that is, the number of times
+    the term appears in the given document (it is also common to call the count &ldquo;within-document frequency&rdquo;, but we find this
+    usage confusing); finally, optionally we might have the <em>{@linkplain it.unimi.di.big.mg4j.index.IndexIterator#nextPosition() positions}</em>
+    in which the term occurs. Some indices store also a user-defined <em>{@linkplain it.unimi.di.big.mg4j.index.IndexIterator#payload() payload}</em>.
+    
+    <p>Traditional indices are based on <em>gap encoding</em> techniques: sequence of increasing integers, such as document pointers,
+    are stored by writing the gaps between successive pointers using suitable instantaneous codes. MG4J supports this kind
+    of indices (see {@link it.unimi.di.big.mg4j.index.BitStreamIndexWriter} and {@link it.unimi.di.big.mg4j.index.BitStreamHPIndexWriter}), 
+    but since version 5.0 the default index is a new kind of {@linkplain it.unimi.di.big.mg4j.index.QuasiSuccinctIndexWriter quasi-succinct index}
+    that has major performance improvements with respect to traditional gap-encoded indices. Gap-based interleaved indices
+    (see {@link it.unimi.di.big.mg4j.index.BitStreamIndexWriter} and {@link it.unimi.di.big.mg4j.index.SkipBitStreamIndexWriter}) are used
+    during index construction, for payload indices, and should be considered when indices are not to be directly queried 
+    (in which a {@linkplain it.unimi.di.big.mg4j.index.QuasiSuccinctIndexWriter quasi-succinct index} is unbeatable) but rather
+    further manipulated.
+  </body>
+</html>

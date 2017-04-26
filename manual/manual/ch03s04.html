@@ -1,0 +1,31 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Query Time</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch03.html" title="Chapter 3. Performance"><link rel="prev" href="ch03s03.html" title="Setup Time"><link rel="next" href="ch04.html" title="Chapter 4. Clusters &amp; Partitioning"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Query Time</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s03.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Performance</th><td width="20%" align="right"> <a accesskey="n" href="ch04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907887232"></a>Query Time</h2></div></div></div><p>Once you are convinced that your setup is reasonable you should
+      generate a wired
+      <code class="classname">BitStreamIndexReader</code>/<code class="classname">BitStreamHPIndexReader</code>.
+      The latter are the generic classes used by MG4J to read an index: thus,
+      they incorporates all the logic required to handle literally hundreds of
+      types of indices. However, you can use the Ruby script
+      <code class="literal">genbitstreamreaders.rb</code> provided with MG4J to generate
+      additional instances that are wired to a specific index type. When
+      loading an index, MG4J will fetch dynamically (by reflection) the wired
+      class and will log (at <code class="literal">INFO</code> level) that it is using a
+      wired class instead of the generic class. (The standard MG4J
+      distribution contains wired classes for the default index-construction
+      options.)</p><p>The Ruby script above prints a list of commands involving a C
+      compiler (by default, <span class="command"><strong>gcc</strong></span>). Actually, the commands
+      use the C preprocessor to filter a driver file contained in the source
+      tree (<code class="filename">BitStream[HP]IndexReader.c</code>). Executing the
+      output of the Ruby script will generate all possible wired classes
+      (hundreds), but you can also select manually the classes you prefer to
+      generate.</p><p>The simplest way to understand the wiring process is having a look
+      at the output of the Ruby script: essentially, defining the symbol
+      <code class="literal">GENERIC</code> you obtain the generic driver. Otherwise, you
+      can define symbols <code class="literal">SKIPS</code> and
+      <code class="literal">PAYLOADS</code> if you want these features, and then you
+      must specify assertions with name <code class="literal">frequencies</code>,
+      <code class="literal">pointers</code>, <code class="literal">counts</code>, and
+      <code class="literal">positions</code> that either select a code or disable a
+      feature (as in <code class="classname">Combine</code>'s command line options).
+      The symbol <code class="literal">CLASSNAME</code> defines the wired class name,
+      and <span class="emphasis"><em>must</em></span> be generated following the algorithm
+      contained in the Ruby script, or MG4J will mistakenly load wired classes
+      that are not adapt for your index.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Setup Time </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 4. Clusters &amp; Partitioning</td></tr></table></div></body></html>

@@ -1,0 +1,268 @@
+<project name="mg4j-big" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+
+	<property name="build.sysclasspath" value="ignore"/>
+	<property name="jars.dir" value="${basedir}/jars"/>
+	<property file="build.properties"/>
+
+	<property environment="env"/>
+
+	<property name="ivy.pom.version" value="${version}" />
+	<condition property="ivy.settings.file" value="${env.LOCAL_IVY_SETTINGS}"><isset property="env.LOCAL_IVY_SETTINGS"/></condition>
+	
+	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant"/>
+
+	<target name="ivy-setupjars" description="Downloads dependencies with ivy and generate report">
+		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact].[ext]"/>
+	</target>
+
+	<target name="ivy-clean" description="Cleans ivy cache, jars dir and ivy installation">
+		<delete dir="${jars.dir}"/>
+	</target>
+
+	<target name="ivy-pom" description="Creates POM">
+		<ivy:resolve/>
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${version}" status="release"/>
+		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml">
+			<dependency group="ch.qos.logback" artifact="logback-classic.jar" optional="true"/>
+		</ivy:makepom>
+	</target>
+	
+	<path id="compile.classpath">
+		<fileset dir="${jars.dir}/compile"/>
+	</path>	
+	<path id="test.classpath">
+		<fileset dir="${jars.dir}/test"/>
+	</path>	
+	<path id="project.classpath">
+		<fileset dir="${jars.dir}/runtime"/>
+	</path>	
+
+	<!-- ************************************** WARNING: MAVEN SH*T ************************************** -->
+
+	<!-- define Maven coordinates -->
+	<property name="groupId" value="it.unimi.di" />
+	<property name="artifactId" value="mg4j-big" />
+	<property name="version" value="${version}" />
+
+        <!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="maven-jar" value="${dist}/lib/${artifactId}-${version}.jar" />
+	<property name="maven-javadoc-jar" value="${dist}/lib/${artifactId}-${version}-javadoc.jar" />
+	<property name="maven-sources-jar" value="${dist}/lib/${artifactId}-${version}-sources.jar" />
+
+        <!-- defined maven snapshots and staging repository id and url -->
+	<property name="maven-snapshots-repository-id" value="sonatype-nexus-snapshots" />
+	<property name="maven-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots/" />
+	<property name="maven-staging-repository-id" value="sonatype-nexus-staging" />
+	<property name="maven-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2/" />
+
+	<target name="dist" depends="compile,javadoc" description="generate the distribution">
+
+		<!-- build the main artifact -->
+		<jar jarfile="${maven-jar}" basedir="${build}">
+			<fileset dir="${build}" includes="**/*.class"/>
+			<fileset dir="${src}" includes="**/*.velocity"/>
+		</jar>
+
+		<!-- build the javadoc artifact (from symbolic link created in init) -->
+		<jar jarfile="${maven-javadoc-jar}">
+			<fileset dir="${dist}/javadoc" />
+		</jar>
+
+		<!-- build the sources artifact -->
+		<jar jarfile="${maven-sources-jar}">
+			<fileset dir="." includes="CHANGES,COPYING,COPYING.LESSER,build.xml,build.properties,ivy.xml,${src}/**/*.*,${test}/**/*.*,${slow}/**/*.*"/>
+		</jar>
+	</target>
+
+	<target name="deploy" depends="dist,ivy-pom" description="deploy snapshot version to Maven snapshot repository">
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+			<arg value="-Durl=${maven-snapshots-repository-url}" />
+			<arg value="-DrepositoryId=${maven-snapshots-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+		</artifact:mvn>
+	</target>
+
+	<target name="stage" depends="dist,ivy-pom" description="deploy release version to Maven staging repository">
+		<!-- sign and deploy the main artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the sources artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-sources-jar}" />
+			<arg value="-Dclassifier=sources" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the javadoc artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-javadoc-jar}" />
+			<arg value="-Dclassifier=javadoc" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+	</target>
+
+	<!-- ************************************** END OF MAVEN SH*T ************************************** -->
+
+	<target name="init">
+		<available property="ivy.set.up" file="${jars.dir}"/>
+		<fail message="It appears that Ivy has not been set up properly. Please run &quot;ant ivy-setupjars&quot; and try again." unless="ivy.set.up"/>	
+		<mkdir dir="${dist}"/>
+		<mkdir dir="${docs}"/>
+		<mkdir dir="${build}"/>
+		<mkdir dir="${reports}"/>
+		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
+	</target>
+
+	<target name="parser" depends="init">
+		<javacc target="${src}/it/unimi/di/big/mg4j/query/parser/SimpleParser.jj" javacchome="${jars.dir}/compile"/>
+	</target>
+
+	<target name="compile" depends="init,parser" description="Compile sources (without tests)">
+	<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" source="1.6" target="1.6" classpathref="compile.classpath"/>
+	</target>
+
+	<target name="compile-tests" depends="init,parser" description="Compile sources (with tests)">
+	<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" source="1.6" target="1.6" classpathref="test.classpath"/>
+	</target>
+
+	<target name="jar" depends="compile" description="Creates jar (without tests)">
+		<jar jarfile="mg4j-big-${version}.jar">
+			<fileset dir="${build}" includes="**/*.class"/>
+			<fileset dir="${src}" includes="**/*.velocity"/>
+		</jar>
+	</target>
+
+	<target name="jar-tests" depends="compile-tests" description="Creates jar (with tests)">
+		<jar jarfile="mg4j-big-${version}.jar">
+			<fileset dir="${build}" includes="**/*.class"/>
+			<fileset dir="${src}" includes="**/*.velocity"/>
+		</jar>
+	</target>
+
+	<target name="javadoc" depends="parser">
+		<mkdir dir="${docs}"/>
+		<javadoc destdir="${docs}" 
+			 additionalparam="-Xdoclint:none"
+			 packagenames = "it.unimi.di.big.mg4j.*"
+			 overview="${src}/overview.html"
+			 sourcepath="${src}" 
+			 private="off"
+			 source="1.6"
+			 windowtitle="MG4J (big) ${version}"
+			 classpathref="compile.classpath">
+	<link href="${j2se.apiurl}"/>
+	<link href="${fastutil.apiurl}"/>
+	<link href="${dsiutils.apiurl}"/>
+	<link href="${slf4j.apiurl}"/>
+	<link href="${sux4j.apiurl}"/>
+	<link href="${webgraph.apiurl}"/>
+	<link href="${velocity.apiurl}"/>
+	<link href="${velocity-tools.apiurl}"/>
+	<link href="${servletapi5.apiurl}"/>
+	<link href="${commons-configuration.apiurl}"/>
+	<link href="${commons-io.apiurl}"/>
+	<link href="${commons-lang.apiurl}"/>
+	<link href="${hadoop.apiurl}"/>
+		</javadoc>
+	</target>
+
+	<target name="junit" depends="compile-tests" description="Runs JUnit tests">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="off" haltonerror="off">
+			<classpath>
+				<path refid="test.classpath" />
+				<pathelement location="${build}"/>
+				<pathelement location="${src}"/>
+				<pathelement location="${test}"/>
+			</classpath>
+
+			<jvmarg value="-Xmx2G" />
+			<jvmarg value="-ea" />
+
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports}">
+				<fileset dir="${build}">
+					<include name="it/unimi/di/big/mg4j/**/*Test.class"/>
+					<exclude name="it/unimi/di/big/mg4j/**/*SlowTest.class"/>
+					<exclude name="it/unimi/di/big/mg4j/test/*.class"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<junitreport todir="reports">
+			<fileset dir="reports">
+				<include name="TEST-*.xml"/>
+			</fileset>
+			<report todir="reports/html"/>
+		</junitreport>
+
+	</target>
+
+	<target name="junit-slow" depends="compile-tests" description="Runs slow JUnit tests">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="off" haltonerror="off">
+			<classpath>
+				<path refid="test.classpath" />
+				<pathelement location="${build}"/>
+				<pathelement location="${src}"/>
+				<pathelement location="${test}"/>
+				<pathelement location="${slow}"/>
+			</classpath>
+
+			<jvmarg value="-Xmx8G" />
+			<jvmarg value="-ea" />
+
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports}">
+				<fileset dir="${build}">
+					<include name="it/unimi/di/big/mg4j/**/*SlowTest.class"/>
+					<exclude name="it/unimi/di/big/mg4j/test/*"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<junitreport todir="reports">
+			<fileset dir="reports">
+				<include name="TEST-*.xml"/>
+			</fileset>
+			<report todir="reports/html"/>
+		</junitreport>
+
+	</target>
+
+	<target name="clean">
+		<delete dir="${dist}"/>
+		<delete dir="${build}"/>
+		<delete dir="${coverage}"/>
+		<delete dir="${reports}"/>
+		<delete>
+			<fileset dir="." includes="mg4j-big-*.jar"/>
+			<fileset dir="${src}/it/unimi/di/big/mg4j/query/parser" includes="SimpleParser*.java"/>
+			<fileset dir="${src}/it/unimi/di/big/mg4j/query/parser" includes="*CharStream.java"/>
+			<fileset dir="${src}/it/unimi/di/big/mg4j/query/parser" includes="Token*.java"/>
+			<fileset dir="${src}/it/unimi/di/big/mg4j/query/parser" includes="ParseException.java"/>
+		</delete>
+	</target>
+
+</project>

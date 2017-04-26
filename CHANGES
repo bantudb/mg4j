@@ -1,0 +1,150 @@
+5.4.2 -> 5.4.3
+
+- Removed computation of the title list in Scan. It proved to be more
+  harmful than useful.
+
+- Made dsi -> di mapping in packages a bit less aggressive.
+
+- New delimiter feature in HtmlDocumentFactory makes it possible to find
+  exactly the text of an anchor.
+
+5.4.1 -> 5.4.2
+
+- Adapted to Sux4J 4.0.0.
+
+- New delimiter feature in HtmlDocumentFactory and AnchorExtractor.
+
+5.4 -> 5.4.1
+
+- New WarcDocumentSequence (based on BUbiNG's WARC classes).
+
+- TITLE metadata now overrides the HTML title.
+
+5.3 -> 5.4
+
+- Now Scan always generate a .titles file.
+
+- Fixed incredible logic-inversion bug in QueryEngine.
+
+5.2.1 -> 5.3
+
+- New WikipediaDocumentSequence that can be used to index the
+  standard Wikipedia dump (and build the entity graph, too!).
+
+- Now ConcatenatedDocumentCollection has a commodity main method.
+
+- URLMPHVirtualDocumentResolver does not invoke anymore URI.normalize() on
+  the context or on the resolved URLs. It was probably a bad idea in the
+  first place (we expect quite normalized URLs from the collection), and
+  it was crashing some Wikipedia URLs such as http://en.wikipedia.org/wiki//b/ 
+  (which are, nonetheless, broken and not RFC-compliant in the first place).
+
+5.2 -> 5.2.1
+
+- Made protected a number of fields in TRECDocumentCollection and
+  HtmlDocumentFactory following a request by Roi Blanco.
+
+5.0.1 -> 5.2
+
+- With this release, this version (big) of MG4J becomes the official
+  release. Subsequent development will happen only on this version, which
+  is presently in line with version 5.2 of the standard version.
+
+- A small revolution is taking place in MG4J: now most classes handling
+  indices have an IOFactory parameter that makes it possible to open files
+  in alternative filesystems, such as HDFS. Beware--the feature is very
+  pervasive and there might be missing spots. Thanks to Tim Potter for
+  useful discussions and for testing this new feature.
+
+- InputStreamDocumentSequence was not behaving correctly in case of
+  keyboard input (two EOFs were necessary).
+
+- Fixed very subtle bug in documents returned from HtmlDocumentFactory.
+  Unparsed document coming from streaming sources would have accessed the
+  data source during finalization due to toString() returning the document
+  title. This was causing random error reading, say, from WArc streams, if
+  a document was not closed properly. Added blurb to AbstractDocument that
+  warns about this issue.
+
+- Fixed a bug in dynamic class naming ("Payload " was used instead of
+  "Payload"). Thanks to Dmitri Portnov for fixing this bug.
+
+- The Maven artifacts did not contain the Velocity templates. Thanks
+  to Andrew MacKinlay for reporting this issue.
+
+- Switched to SLF4J for logging.
+
+5.0.1
+
+- Because of a copy-and-paste error END_OF_LIST was an int set to
+  Integer.MAX_VALUE instead of a long set to Long.MAX_VALUE. Thanks to
+  Valentin Tablan for reporting this bug.
+
+5.0
+
+- WARNING: this release has source and binary incompatibilities with
+  previous releases. Watch out. 
+
+- nextDocument() now returns DocumentIterator.END_OF_LIST instead of -1 to
+  denote list exhaustion. To avoid confusion and ease the transition, the
+  package prefix of MG4J is now it.unimi.di.*, following the change of
+  name of our department.
+
+- The plethora of methods that accessed the positions of a term in an
+  IndexIterator have been replaced by the single lazy nextPosition() call,
+  which returns IndexIterator.END_OF_POSITIONS when the positions are
+  exhausted. Some static methods in IndexIterators should help with the
+  transition.
+
+- MG4J is no longer based on gap-based indices. Classical interleaved indices
+  are used for incremental index construction and high-performance indices
+  are still supported for historical reasons, but all new indices are by
+  default built using the new quasi-succinct format.
+
+- DiskBasedIndex.getInstance() now return an Index instead of a
+  BitStreamIndex. Old code should check with a reflective call whether the
+  result is a BitStreamIndex and act accordingly, as now it might be a
+  QuasiSuccinctIndex, too.
+
+- Fixed SimpleParser.parse(MutableString), which was throwing a
+  NullPointerException.
+
+- Fixed some mismatch between interrelated implementations of
+  next()/hasNext()/nextInterval() in some interval iterators. Thanks to
+  Dmitri Portnov for reporting this bug.
+
+- Compatibility with previous versions (standard or big) should be
+  complete, even at the level of term/prefix maps.
+
+4.0.2
+
+- We now force the number of documents of a virtual index to be equal
+  to that specified by the resolver. Collections in which the last few
+  documents were not referred would have generated virtual indices with
+  fewer documents than the standard ones.
+
+- Fixed a small bug in the equal method of Term.
+
+- Fixed bug in the equals and hashCode methods of Select (before, only 
+  Index was taken into account, and not the actual subquery).
+
+- Fixed several small inconsistencies in the Scorer hierarchy.
+
+- Added the SubsetDocumentSequence class to extract a subset of documents
+  from a given sequence.
+
+- Fixed the DEFAULT_TEMPLATE of QueryServlet.
+
+- The default target for skipping structures is now 1%.
+
+4.0.1
+
+- Fixed the names of big lists by adding "Big" where it was necessary.
+  This should cause no problem.
+
+4.0
+
+- First release of big MG4J.
+
+- it.unimi.dsi.big.mg4j.search.DocumentIterator is now strictly lazy;
+  in particular, it does not implement java.util.Iterator.

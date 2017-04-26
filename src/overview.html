@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>MG4J (big): Managing Gigabytes for Java</title>
+  </head>
+
+  <body>
+    <P>MG4J (<i>Managing Gigabytes</i> for Java) is a free full-text search engine
+    for large document collections written in Java. The big version is a fork
+    of the original MG4J that can handle more than 2<sup>31</sup> terms and
+    documents.
+
+    <P>MG4J is distributed under the <A
+    HREF="http://www.gnu.org/copyleft/lesser.html"><ACRONYM TITLE="GNU's not
+    Unix">GNU</ACRONYM> Lesser General Public License</A>.
+	
+	<h2>Warning</h2>
+	
+	<p>MG4J 5.0 brings several new features, but also source and binary incompatibilities with
+  previous releases.
+  	<ul>
+ <li>MG4J is no longer based on gap-based indices. Classical interleaved indices
+  are used for incremental index construction and high-performance indices
+  are still supported for historical reasons, but all new indices are by
+  default built using the new {@linkplain it.unimi.di.big.mg4j.index.QuasiSuccinctIndexWriter quasi-succinct format}, 
+  which brings unprecedented performance and improves compression.
+  	<li>The package prefix of MG4J is now <code>it.unimi.di.*</code>, following the change of
+  name of our department, so to ease the transition and making coexistence with previous versions possible.
+	<li>{@link it.unimi.di.big.mg4j.search.DocumentIterator#nextDocument()}
+	now returns {@link it.unimi.di.big.mg4j.search.DocumentIterator#END_OF_LIST} instead of -1 to
+  denote list exhaustion.
+ <li>The plethora of methods that accessed the positions of a term in an
+  {@link it.unimi.di.big.mg4j.index.IndexIterator} have been replaced by the single lazy {@link it.unimi.di.big.mg4j.index.IndexIterator#nextPosition()} call,
+  which returns {@link it.unimi.di.big.mg4j.index.IndexIterator#END_OF_POSITIONS} when the positions are
+  exhausted. Some static methods in {@link it.unimi.di.big.mg4j.index.IndexIterators} should help with the
+  transition.
+	</ul>
+
+	 <h2>Roadmap</h2>
+
+	 <p>MG4J is vast. Some of its component are the result of longtime research efforts, and
+	 are not easy to describe in full detail. Here we give a roadmap to the documentation,
+	 so that you do not have to wander recklessly through dozens of package descriptions.</p>
+
+	 <p>First of all, MG4J comes with a <strong>manual</strong> that describes how to build
+	 indices, and how to access them from the command line or from the web. It is a good idea
+	 to start from the manual, build and play with a few indices, and then come back to package documentation,
+	 as the latter often refers to artifacts created by index construction.</p>
+
+	 <p>If you want to <strong>interface MG4J with your own data</strong>, you must read 
+	 the package documentation of {@link it.unimi.di.big.mg4j.document}, which describes document
+	 sequences, collections and factories.</p>
+
+	 <p>If you want to <strong>load and query an index</strong>, you must read 
+	 the package documentation of {@link it.unimi.di.big.mg4j.index}, which describes indices and
+	 index readers. The package contains also the documentation about
+	 <strong>{@linkplain it.unimi.di.big.mg4j.index.TermProcessor term processors}</strong>, which transform terms
+	 before they are actually indexed; they are fundamental to customise the indexing process.</p>
+
+	 <p>If you want to <strong>have a look at your index</strong>, the package
+	 {@link it.unimi.di.big.mg4j.query} contains many useful classes that can help. In particular,
+	 a simple {@linkplain it.unimi.di.big.mg4j.query.Query command-line tool} let you query an index using a standard syntax. The
+	 tool makes it also possible to query the index using a browser (if you plan on using the command-line
+	 frequency, we suggest a utility such as <a href="http://utopia.knoware.nl/~hlub/uck/rlwrap/"><samp>rlwrap</samp></a>
+	 to provide command-line history and editing).
+	 
+	 </p>In a real applications, you might want to <strong>customise the index querying process</strong>. First
+	 of all, you must decide which syntax you want to use. A good starting point is described
+	 in the package {@link it.unimi.di.big.mg4j.query.parser}, which contains a simple parser generated
+	 with <A HREF="https://javacc.dev.java.net/">JavaCC</A>. The parser generates an <strong>abstract query</strong>
+	 describe by a composite object whose description is given in {@link it.unimi.di.big.mg4j.query.nodes}. The
+	 query can then be turned into a {@link it.unimi.di.big.mg4j.search.DocumentIterator}, which will return
+	 the documents matching the query and also the document intervals satisfying the query: the 
+	 <strong>minimal-interval semantics</strong>
+	 used by MG4J is described in detail in {@link it.unimi.di.big.mg4j.search}, which also contains
+	 a description of the syntax used by the
+	 {@linkplain it.unimi.di.big.mg4j.query.Query command-line tool}.
+	 
+	 <p>Once a document iterator returning the matching documents is available, it is usually necessary
+	 to <strong>rank the documents</strong>. MG4J provides an abstract notion of {@link it.unimi.di.big.mg4j.search.score.Scorer}
+	 and provides several examples. Scoring is a very sophisticated issue, and a lot of research has
+	 been devoted to this subject. MG4J provides implementation for some state-of-the-art scorers
+	 such as {@linkplain it.unimi.di.big.mg4j.search.score.BM25Scorer BM25}, and also new scorers based
+	 on minimal-interval semantics such as {@link it.unimi.di.big.mg4j.search.score.VignaScorer}.</p>
+	 
+	 <p>All these pieces come together in the {@link it.unimi.di.big.mg4j.query.QueryEngine}, which takes one 
+	 or more queries, scores their results using one or more scorers, and returns only a certain part of
+	 the results themselves, decorated with suitably selected intervals that can be used to
+	 generate snippets. The query engine has several tunable parameters, so you can adapt it to your application.
+	 We suggest that you play with the {@linkplain it.unimi.di.big.mg4j.query.Query command-line tool} and
+	 the associated web interface to become familiar with the query-engine inner workings.</p>
+  </body>
+</html>

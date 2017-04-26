@@ -1,0 +1,18 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Payload-based indices</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"><link rel="prev" href="ch02s05.html" title="Virtual fields in MG4J"><link rel="next" href="ch03.html" title="Chapter 3. Performance"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Payload-based indices</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s05.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Behind the scenes: The indexing process</th><td width="20%" align="right"> <a accesskey="n" href="ch03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907854432"></a>Payload-based indices</h2></div></div></div><p>MG4J provides a special kind of index, called
+      <span class="emphasis"><em>payload-based index</em></span>, that is used to store not text
+      but rather metadata (dates, integers, etc.) related to a document. It is
+      the default way of storing non-textual fields. Essentially, a
+      payload-based index leverages the structure of a text-based index: it
+      has no counts or positions, but each posting has a
+      <span class="emphasis"><em>payload</em></span>—a piece of data related to the document
+      referred by the posting. In this way, by creating an index with a single
+      posting list (related to the term <code class="literal">#</code>) we are
+      effectively storing metadata related to each document. The main
+      advantage of this approach is that we get almost for free the
+      sophisticated skipping structure of MG4J's indices, and support for
+      splitting, combination, and so on.</p><p>From the user viewpoint there is no particular difference between
+      standard and payload-based indices, except that the latter do not
+      provide some files that would be nonsensical, such as the file of sizes
+      or the global occurrence count, and that searching a payload-based index
+      is rather different form searching an index (instead of term-based
+      operators and Boolean combinators you just get range queries).</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Virtual fields in <span class="application">MG4J</span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 3. Performance</td></tr></table></div></body></html>

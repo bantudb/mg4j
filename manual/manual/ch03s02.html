@@ -1,0 +1,41 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Setting up the index structure</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch03.html" title="Chapter 3. Performance"><link rel="prev" href="ch03.html" title="Chapter 3. Performance"><link rel="next" href="ch03s03.html" title="Setup Time"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Setting up the index structure</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Performance</th><td width="20%" align="right"> <a accesskey="n" href="ch03s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907864288"></a>Setting up the index structure</h2></div></div></div><p>In MG4J, you can choose the codes used for compression. As a
+      general rule, <span class="emphasis"><em>nonparametric codes are quicker than parametric
+      codes</em></span>. Thus, Golomb codes for document pointers have an
+      excellent compression rate, but δ codes have very good compression, too,
+      and can be decoded more quickly. The point here is that for unary, γ,
+      shifted γ and δ codes MG4J uses <span class="emphasis"><em>precomputed decoding
+      tables</em></span> that speed up decompression by an order of magnitude.
+      The default choice (γ for frequencies, δ for pointers, γ for counts, and
+      δ for positions) is very reasonable. For maximum speed you could even
+      try to use γ everywhere (as it is quicker to decode if the precomputed
+      decoding tables fail).</p><p>Another important trick is that of discarding what you don't need.
+      The default MG4J index type is called
+      <span class="emphasis"><em>high-performance</em></span>: it contains all information
+      (pointers, counts, positions) but it is only partially
+      interleaved―positions are kept in a separate file. This satisfies most
+      needs, but If you are just using BM25 or TF/IDF scoring, there is no
+      need to store positions in your index: you can force a standard,
+      interleaved index, and store just what you need (e.g.,
+      <code class="option">-cPOSITIONS:NONE</code> will eliminate positions from the
+      index).</p><p>By default, indices contain a <em class="firstterm">skipping
+      structure</em> that makes skipping index entries faster. Skipping
+      structures introduce a slight overhead when scanning sequentially a list
+      (so you should disable them using the <code class="option">--no-skips</code> option
+      if you don't need them), but in general they make query processing
+      significantly faster. Skipping structure are based on two parameters:
+      the <em class="firstterm">quantum</em> <code class="varname">q </code>and the
+      <em class="firstterm">height</em> <code class="varname">h</code>. The quantum dictates
+      how often the skipping structure should index positions in the inverted
+      list. The height dictates how far the skipping structure is able to jump
+      in one shot (an index is able to skip in one shot as far as
+      <code class="varname">q</code>2<sup>h</sup>). However, as
+      <code class="varname">h</code> grows the memory required to build the skip
+      structures grow exponentially: the rule of thumb is setting
+      <code class="varname">h</code> as large as possible without incurring in
+      out-of-memory errors.</p><p>Sizing the quantum is a more complex issue, as it depends on the
+      structure of the inverted list. Dense inverted lists require smaller
+      quanta. Since version 3.0, MG4J makes it possible to just specify the
+      <span class="emphasis"><em>percentage</em></span> of the index size occupied by the
+      skipping structure, and let some machinery compute the correct quantum.
+      You can also specify a quantum explicitly, but it will be the same for
+      all lists, which is usually not a good thing.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 3. Performance </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Setup Time</td></tr></table></div></body></html>

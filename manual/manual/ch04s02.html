@@ -1,0 +1,18 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Partitioning vs. Clustering</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch04.html" title="Chapter 4. Clusters &amp; Partitioning"><link rel="prev" href="ch04.html" title="Chapter 4. Clusters &amp; Partitioning"><link rel="next" href="ch04s03.html" title="Creating a Cluster"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Partitioning vs. Clustering</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04.html">Prev</a> </td><th width="60%" align="center">Chapter 4. Clusters &amp; Partitioning</th><td width="20%" align="right"> <a accesskey="n" href="ch04s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907905456"></a>Partitioning vs. Clustering</h2></div></div></div><p>The opposite of clustering is <em class="firstterm">partitioning</em>.
+      Partitioning an index means dividing its inverted lists using some
+      criterion, and, not surprisingly, partitioning can be documental or
+      lexical. MG4J provides tool that make it possible partitioning using a
+      custom strategy specified by a Java class, so it is very easy to process
+      indices (even large indices) and partition them in several ways (obvious
+      splitting strategies, such as uniform strategies, are actually
+      built-in). You should try the
+      <code class="classname">PartitionDocumentally</code> and
+      <code class="classname">PartitionLexically</code> tools to get an idea of what
+      can be donem and have a look at the documentation of the
+      <code class="classname">it.unimi.dsi.m4j.cluster</code> package.</p><p>Of course, the suite of combination tools used to combine batches
+      can be used for the opposite process―taking the set of local indices
+      making up a cluster and turning them into a single combined index, which
+      will contain the same data of the original cluster, but in a different
+      format. Clusters, partitioning and combining are thus several facets of
+      the same idea―that is, that an index is actually a composite
+      object.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 4. Clusters &amp; Partitioning </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Creating a Cluster</td></tr></table></div></body></html>

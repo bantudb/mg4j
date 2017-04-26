@@ -1,0 +1,61 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Chapter 5. Accessing MG4J indices programmatically</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="index.html" title="MG4J (big): The Manual"><link rel="prev" href="ch04s03.html" title="Creating a Cluster"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 5. Accessing MG4J indices programmatically</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> </td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idp140540907915088"></a>Chapter 5. Accessing MG4J indices programmatically</h1></div></div></div><p>Constructing an index and querying it using the
+    <code class="classname">Query</code> class is fine, but usually MG4J must be
+    integrated in some kind of environment. In this chapter we describe how to
+    access programmatically an index using MG4J. A (small but growing) list of
+    heavily commented examples is available in the
+    <code class="classname">it.unimi.di.big.mg4j.example</code> package.</p><p>In general, the first thing you need is to load an index. To do
+    that, you must use the <code class="methodname">Index.getInstance()</code>
+    method, which will arrange for you a number of things, like finding the
+    right index class, possibly loading a term map, and so on. Usually you
+    will have more than an index (e.g., title and main text).</p><p>The second piece of information that is necessary for the following
+    phases is an <em class="firstterm">index map</em>—a data structure mapping a
+    set of symbolic <em class="firstterm">field names</em>, which will be used to
+    denote the various indices, to the actual indices (e.g., to the actual
+    instances of the <code class="classname">Index</code> class). There are simple
+    ways to build such maps on the fly using <code class="literal"><a class="ulink" href="http://fastutil.dsi.unimi.it/" target="_top">fastutil</a></code> classes
+    (see the <code class="classname">RunQuery</code> example). Another important map
+    is the map of term processors, which maps each field name to the
+    respective term processor. Usually the term processor is the one used to
+    build the index, which can be recovered from the
+    <code class="classname">Index</code> instance, but different choices are
+    possible</p><p>There are now several ways to access MG4J. Given a textual query,
+    the query is parsed and turned into an internal <em class="firstterm">composite
+    representation</em> (essentially, a tree). Then, a
+    <em class="firstterm">builder visitor</em> visits the tree and builds a
+    corresponding <em class="firstterm">document iterator</em>, which will return
+    the documents that satisfy the query.</p><p>At the basis of the query resolution, <em class="firstterm">index
+    iterators</em> provide results from the index (i.e., documents in
+    which a term appears, and other information): in other words, they are
+    used as iterators corresponding to the leaves of the query tree. These can
+    be combined in various ways (conjunction, disjunction, etc.) to form
+    document iterators. Document iterators return documents satisfying the
+    query and, for each document, a list of <em class="firstterm">minimal
+    intervals</em> representing the regions of text satisfying the
+    query. At that point, <em class="firstterm">scorers</em> are used to rank the
+    documents returned by the document iterator.</p><p>You can handle this chain of events at many different levels. You
+    can, for instance, build your own document iterators using the various
+    implementations of <code class="classname">DocumentIterator</code>. Or you can
+    create queries (i.e., composite built using the implementations of
+    <code class="classname">it.unimi.di.big.mg4j.query.node.Query</code>), and turn
+    them into document iterators. You can even start from a textual query,
+    parse it to obtain a composite internal representation, and then go
+    on.</p><p>Nonetheless, the simplest way is to use a façade class called
+    <code class="classname">QueryEngine</code> that tries to do all the dirty work for
+    you. A query engine just wants to know which parser you want to use
+    (<code class="classname">SimpleParser</code> is the default parser provided with
+    MG4J), which builder visitor you want to use, and which index map. The
+    builder visitor is a visitor class that is used to traverse the internal
+    representation of a query and compute the corresponding document iterator.
+    The default visitor,
+    <code class="classname">DocumentIteratorBuilderVisitor</code>, is very simple but
+    fits its purpose. You might want to change it, for instance, to reduce
+    object creation.</p><p>A query engine has many tweakable parameters, that you can find in
+    the Javadoc documentation. However, its main advantage is that its method
+    <code class="methodname">process()</code> takes a textual query, a range of
+    ranked results, and a list in which to deposit them, and does everything
+    for you. You can easily get results from MG4J in this way.</p><p>A different route is that of customizing the
+    <code class="classname">QueryServlet</code> class that MG4J uses for its HTTP/HTML
+    display. This might simply involve changing the Velocity script that
+    displays the results (and which is set by a system variable—see the class
+    <code class="classname">HttpQueryServer</code>) or actually modifying the class
+    code.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> </td></tr><tr><td width="40%" align="left" valign="top">Creating a Cluster </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div></body></html>

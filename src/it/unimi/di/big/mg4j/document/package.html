@@ -1,0 +1,259 @@
+<html>
+<body>
+This package contains all the logics related to and useful for managing documents, document collections and such.
+
+<p><strong>Warning:</strong> We are still working on the document infrastructure. It should be pretty stable, but
+changes should not be unexpected. Suggestions are welcome. Note also that most of the classes in this
+package should be considered examples and suggestions: while a casual user will find them
+invaluable in indexing data, a custom, large-scale application will usually require writing your own 
+{@link it.unimi.di.big.mg4j.document.DocumentCollection}.
+
+<h2>Basic interfaces</h2>
+
+<h3>The {@link it.unimi.di.big.mg4j.document.Document} interface</h3>
+
+<p><code>MG4J</code> aims at indexing the content of entities called documents.	The main 
+classes that describe documents and sets of documents are included in the <code>it.unimi.di.big.mg4j.document</code> 
+package. In particular, documents are instances of the {@link it.unimi.di.big.mg4j.document.Document}
+interface. A document is characterized abstractly by the following data:
+<ul>
+  <li> a <em>title</em>, a character sequence that represents the document; the document title is 
+    returned by the {@link it.unimi.di.big.mg4j.document.Document#title()} method;
+  <li> a URI, that somehow characterizes the document uniquely; the document URI is returned by 
+    the {@link it.unimi.di.big.mg4j.document.Document#uri()} method;
+  <li>a number of <em>fields</em>; every field is abstractly represented by a number, the <em>field index</em>; 
+    fields are numbered from 0, but the user should know how many fields a document exhibits, because this 
+    information is not available in the document itself. For every field, the document exhibits the following data:
+    <ul>
+       <li> the field content, that is an <code>Object</code> returned by the 
+         {@link it.unimi.di.big.mg4j.document.Document#content(int)} method; the type of object that 
+         this method returns must be known by the calling class in advance; in particular, for 
+	        textual fields (see below), the content will be a {@link java.io.Reader};
+       <li> for textual fields only, a {@linkplain it.unimi.dsi.io.WordReader word reader}: 
+       	an object that is able to split the field 
+         content (in this case: a sequence of characters) into a sequence of words; the word reader 
+         is returned by the {@link it.unimi.di.big.mg4j.document.Document#wordReader(int)} 
+         method (which must be called only for textual fields).
+    </ul>
+  </ul>
+
+<p>Users should always close a document after usage by calling the {@link it.unimi.di.big.mg4j.document.Document#close()} 
+method: the method is responsible for relinquishing all resources that a document instantiated for its very existence.
+
+<h3>The {@link it.unimi.di.big.mg4j.document.DocumentFactory} interface</h3>
+
+<p>Documents usually do not come alone, but they are grouped into collections: documents within a collection are 
+of the same type, and this fact explains why the document structure (number and type of fields) are not contained in 
+the document itself. Indeed, documents are produced by document factories.
+
+<p>A document factory is an instance of the {@link it.unimi.di.big.mg4j.document.DocumentFactory} interface, that in 
+particular is able to produce a document. All documents produced by the same factory are of the same kind, and exhibit 
+the same number and type of fields. A factory gives information about the documents it produces through the following methods:
+   <ul>
+     <li> {@link it.unimi.di.big.mg4j.document.DocumentFactory#numberOfFields()}: returns the number of fields contained 
+       in each document produced by this factory; recall that fields are indexed starting from 0;
+     <li> {@link it.unimi.di.big.mg4j.document.DocumentFactory#fieldName(int)}: returns a mnemonic explanatory name 
+       for the given field;
+     <li> {@link it.unimi.di.big.mg4j.document.DocumentFactory#fieldIndex(String)}: returns the index of a field, given its mnemonic
+     name;
+     <li> {@link it.unimi.di.big.mg4j.document.DocumentFactory#fieldType(int)}: returns (an integer representing) 
+       the type of the given field; possible types are static constants declared in the {@link it.unimi.di.big.mg4j.document.DocumentFactory.FieldType} 
+       interface; one of the possible types is {@link it.unimi.di.big.mg4j.document.DocumentFactory.FieldType#TEXT}, used for textual 
+       fields; note that the type of objects returned by the {@link it.unimi.di.big.mg4j.document.Document#content(int)} 
+       method of the {@link it.unimi.di.big.mg4j.document.Document} interface depend on the type of the field.
+   </ul>
+
+<p>The abovementioned methods provide information about documents produced by the factory. The actual documents are 
+produced by the {@link it.unimi.di.big.mg4j.document.DocumentFactory#getDocument(java.io.InputStream,it.unimi.dsi.fastutil.objects.Reference2ObjectMap) getDocument(rawContent,metadata)}
+method.
+
+<p>This method returns a new document from the factory. The <code>rawContent</code> parameter is
+the most important one: it is a stream 
+of bytes that the factory uses to produce the document. 
+The factory knows how the sequence of bytes should be interpreted 
+to produce a document of the desired kind.
+Note that even though the interpretation of the sequence of bytes representing the raw
+document content is entirely left to implementors, often you 
+might prefer to think of the input byte sequence as of a list of consecutive self-delimiting byte 
+subsequences, one for each field: in this case, the 
+{@link java.io.InputStream#reset()} method of the {@link java.io.InputStream} class is used to divide the 
+subsequences from one another.
+
+<p>The <code>metadata</code> parameter is a map providing some basic
+data about the document as derived by the collection. The map is a <em>reference</em> map with 
+suitable {@link java.lang.Enum} keys, and as such must be
+queried using the keys in {@link it.unimi.di.big.mg4j.document.PropertyBasedDocumentFactory.MetadataKeys}, or other
+similar factory-specific keys. For instance, the key {@link it.unimi.di.big.mg4j.document.PropertyBasedDocumentFactory.MetadataKeys#TITLE}
+gives a suggested title to  the document (but the factory may ignore it, if it has a better way to determine
+a title for the document), whereas {@link it.unimi.di.big.mg4j.document.PropertyBasedDocumentFactory.MetadataKeys#URI} specifies a suggested URI for
+the document (which, once more, may be ignored by the factory).
+
+<p>Usually, a factory is built using a list of <em>properties</em> that define default values for metadata such as charset
+encoding or MIME types. There properties can be passed in several ways, and usually the main method of a collection
+provides an option (typically, <samp>-p</samp>) that let the user specify default metadata for the factory. The
+property resolution algorithm is explained in the documentation for 
+{@link it.unimi.di.big.mg4j.document.PropertyBasedDocumentFactory}.
+
+<h3>The {@link it.unimi.di.big.mg4j.document.DocumentSequence} interface</h3>
+
+<p>Up to this point, we have interpreted documents and document factories in a very abstract manner, but we gave no 
+importance on the way the byte sequences representing the raw data are produced.
+
+<p>Basically, a source of documents is a {@link it.unimi.di.big.mg4j.document.DocumentSequence}. More precisely, instances of 
+this class represent sources that are able to generate documents. Typically, a document sequence is able to produce a 
+stream of documents after one another, through a special kind of iterator, called 
+{@link it.unimi.di.big.mg4j.document.DocumentIterator}, returned by the {@link it.unimi.di.big.mg4j.document.DocumentSequence#iterator()} method.
+
+<p>A document iterator is not really a Java {@link java.util.Iterator}: it is simply a class that 
+exposes a method {@link it.unimi.di.big.mg4j.document.DocumentIterator#nextDocument()} that returns the next document, 
+if any, or <code>null</code> when there are no more documents. Thus, document iterators can be <em>lazy</em>, which
+is preferrable in several circumstance (e.g., documents coming from an input stream).
+
+<h3>The {@link it.unimi.di.big.mg4j.document.DocumentCollection} interface</h3>
+
+<p>In some cases, the documents only appear as an uninterrupted stream and applications do not have direct accesses to 
+single documents; in particular, it might be the case that documents just disappear after being enumerated (as it happens
+when the document source is standard input). In all such situations, a {@link it.unimi.di.big.mg4j.document.DocumentSequence}
+provides the only way to get the documents, because it only guarantees sequential access.
+
+<p>Nonetheless, there are other cases where documents can be easily accessed in a direct fashion, and can be read many
+times (for example, when documents are files in the file system). In such cases, {@link it.unimi.di.big.mg4j.document.DocumentCollection} 
+(an extension of {@link it.unimi.di.big.mg4j.document.DocumentSequence})
+can be used.
+
+<p>Apart for the methods of a document sequence, a document collection provides the following additional access methods
+to the documents:
+
+<ul>
+  <li> {@link it.unimi.di.big.mg4j.document.DocumentCollection#size()}, that returns the collection size, i.e., the number
+    of documents in the collection;  
+  <li> {@link it.unimi.di.big.mg4j.document.DocumentCollection#document(long)}, that returns the document with given pointer; 
+    the <em>document pointer</em> is an integer representing uniquely a document within the collection: the <var>i</var>-th
+    document produced by the collection's {@linkplain it.unimi.di.big.mg4j.document.DocumentCollection#iterator() document iterator}
+    has pointer <var>i</var>&minus;1 (so, document pointers range from 0, inclusive, to <code>size()</code>, exclusive);
+  <li> {@link it.unimi.di.big.mg4j.document.DocumentCollection#stream(long)}, that returns the {@link java.io.InputStream} of raw data
+    that this collection would use to produce the document with given pointer.
+</ul>
+
+<p>After a document collection has been created, for example, starting from a set of files in the file system, it can usually
+be saved (serialized) on a file: the extension used for the filename is, by default, {@link it.unimi.di.big.mg4j.document.DocumentCollection#DEFAULT_EXTENSION}.
+Implementors of this interface should always specify <strong>explicitly</strong> which assumptions on the existence of
+external data are made for the consistency of a collection to be preserved. For example, a collection produced from a set of
+files will be consistent until no file has been changed or deleted; if the latter situation happens, the collection usually
+becomes inconsistent, and in any case you might expect that the indices thereof produced will no longer match the content
+of the collection. 
+
+<p>Note that a document collection has <strong>very weak</strong> requirements (and thus
+very weak obligations) on the concurrent creation of several objects (documents, iterators, etc.). Please read carefully the
+{@link it.unimi.di.big.mg4j.document.DocumentCollection class description}.</p>
+
+<h3>Relations between document sequences/collections and document factories</h3>
+
+<p>As we explained above, document sequences/collections extract raw data (byte sequences) from some source and use
+a specified document factory to turn such data into documents. Hence, there exists a tight connection between each document
+sequence and the document factory it uses. 
+
+<p>Typically, the document factory is provided to the document sequence at construction time, and this fact provides a form of 
+flexibility, because different sources (e.g., the file system and the standard input) may be coupled with the same document
+factory (e.g., a document factory parsing HTML documents into text), or, conversely, the same document source may be
+used to produce documents with different formats.
+
+<p>Users should always be careful, however. Often, document sequences make assumptions about the factory they use, which
+reduces the number of possible combinations the user may adopt. Implementors of the {@link it.unimi.di.big.mg4j.document.DocumentSequence}
+interface should always clarify all the assumptions they make about the factories that can be used for the sequence.
+
+<p><strong>Warning</strong>: it is a common mistake forgetting to specify some property (typically, the character encoding) for the factory
+when creating a document sequence (or collection). This problem cannot be detected at construction time because, 
+in principle, the document sequence could guess the property and pass it to the factory. The problem arises, usually, in the indexing
+phase, when the first document is retrieved. We realise that this is confusing and counterintuitive&mdash;the collection has <em>already</em>
+been created and serialized, so what's the problem?&mdash;but there is no way to check what the sequence will do with a particular document.
+
+<h2>Document factories</h2>
+
+<p>Recall that a document factory is an object that is capable of producing homogeneous documents (documents with the
+same number/type of fields). Every document is produced starting from a raw bytestream. 
+ 
+<h3>The {@link it.unimi.di.big.mg4j.document.IdentityDocumentFactory}</h3>
+
+<p>The simplest possible document factory is the {@link it.unimi.di.big.mg4j.document.IdentityDocumentFactory}: this factory 
+produces documents with a single textual field, called <samp>text</samp>, that is actually obtained by transforming the
+byte sequence into a sequence of characters, using some default encoding. Actually, a
+document factory must also provide a way to break the text into words. With this aim, the identity factory may be provided
+with a {@link java.util.Locale} that is used to determine how words are best broken in the given locale's language.
+
+<h3>Other examples of document factories</h3>
+
+<p>Other implementations of document factories that are provided with <code>MG4J</code> are:
+<ul>
+  <li> {@link it.unimi.di.big.mg4j.document.HtmlDocumentFactory}: a factory used to parse HTML documents; this factory 
+    produces documents by parsing HTML streams. Bytes are converted into characters using a specified encoding; 
+    the resulting HTML character sequence is parsed to extract text (that is returned as
+    a textual field named <samp>text</samp>) and title (the HTML title element, returned as a textual field named
+    <samp>title</samp>). The title, if present, is also used as document title (otherwise, the suggested title is used).
+    Note that a document collection might have information about the charset encoding (e.g., by means of HTTP headers):
+    in this case the <code>metadata</code> field of {@link it.unimi.di.big.mg4j.document.DocumentFactory#getDocument(java.io.InputStream,it.unimi.dsi.fastutil.objects.Reference2ObjectMap)}
+    should pass this information.
+  <li> The package {@link it.unimi.di.big.mg4j.document.tika} provides factories based on <a href="http://tika.apache.org/">Tika</a>. 
+</ul> 
+
+<h3>Composing document factories</h3>
+
+<p>As we said, many document factories interpret the raw content data (an {@link java.io.InputStream}, i.e., a sequence
+of bytes) as if it is really made by a concatenation of many {@link java.io.InputStream}s, where each stream is typically
+parsed to a field; to pass from one stream to the next, the {@link java.io.InputStream#reset()} method is called.
+
+<p>Suppose you have <var>n</var> document factories <var>D</var><sub>1</sub>, &hellip;, <var>D</var><sub><var>n</var></sub>, 
+with <var>f</var><sub>1</sub>, &hellip;, <var>f</var><sub><var>n</var></sub> fields, respectively. One may want to
+build a new factory with <var>f</var><sub>1</sub>+&hellip;+<var>f</var><sub><var>n</var></sub> fields, where each document
+is produced by composing the document factories <var>D</var><sub>1</sub>, &hellip;, <var>D</var><sub><var>n</var></sub> sequentially:
+in other words, the raw data are first passed to the first factory (that extracts <var>f</var><sub>1</sub> fields, typically
+resetting the stream as many times), then it is passed to the second factory (that extracts <var>f</var><sub>2</sub> fields)
+etc.
+
+<p>The {@link it.unimi.di.big.mg4j.document.CompositeDocumentFactory} does the job, and also allows one to change the field
+names (that are otherwise named as they were in the subfactories).
+
+<p>The class {@link it.unimi.dsi.io.MultipleInputStream} is a useful tool to produce raw data for composite factories:
+it allows one to convert an array of input streams into a single input stream: each time the resulting stream is reset,
+the multiple input stream will offer you the next stream in the array.
+
+<p>A special form of composite document factory is obtained using {@link it.unimi.di.big.mg4j.document.ReplicatedDocumentFactory},
+that allows one to compose sequentially the same document factory with itself a certain number of times.
+
+<h2>Document collections and sequences</h2>
+
+<h3>The {@link it.unimi.di.big.mg4j.document.InputStreamDocumentSequence}</h3>
+
+<p>This is the simplest kind of document sequence: it just breaks a single {@link java.io.InputStream} on the basis of a given
+separator character; each piece of the stream is interpreted as the raw data corresponding to a document, and it is passed
+to a factory (specified at construction time) for converting it into a {@link it.unimi.di.big.mg4j.document.Document}.
+
+<h3>The {@link it.unimi.di.big.mg4j.document.FileSetDocumentCollection}</h3>
+
+<p>This kind of collection is built starting from a set of files in the file system. Each file is interpreted as a document, and
+passed to a factory (specified at construction time). The suggested title for a document is the corresponding filename, and the
+suggested URI is the URI of the file. 
+ 
+<h3>The {@link it.unimi.di.big.mg4j.document.ZipDocumentCollection} facility</h3>
+
+<p>There are cases in which one would like to turn a document sequence into a document collection. This may happen for one of the
+following reasons:
+  <ul>
+     <li>the sequence is, by its very nature, volatile (e.g., it is coming from standard input, and cannot be re-produced),
+       but we would like to make it into a resident non-volatile collection;
+     <li>the sequence is not amenable to be accessed at random;
+     <li>the documents in the sequence are difficult to parse, and it is not advisable to repeat the parsing process every
+       time they are accessed.
+  </ul>
+
+<p>In all such cases, it may be advisable to produce a compact copy of the sequence that is easily and efficiently accessible at random.
+To do this, one may use the {@link it.unimi.di.big.mg4j.document.ZipDocumentCollectionBuilder}, that takes a document sequence
+and produces a "zipped clone" of the documents in the sequence: there are some mild limitations to the sequences that can
+be used in this context, and the resulting collection is only a partial copy of the original one, but in most cases this is
+sufficient for all indexing purposes. The builder will save two files: one contains the essential data concerning the zipped
+collection, and the other contains the zipped version of the documents. 
+
+<p>After this, the produced {@link it.unimi.di.big.mg4j.document.ZipDocumentCollection} may be used as any other collection.
+ 
+</body>
+</html>

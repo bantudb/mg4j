@@ -1,0 +1,189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Strict//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>MG4J Help</title>
+<style type="text/css">
+
+* { font-family: arial, sans-serif }
+
+samp, code, tt, pre {
+	font-family: monospace;
+}
+
+body {
+	background: white;
+}
+
+img {
+	border: none;
+}
+
+h1, h2, h3, h4 {
+        font-family: luxi sans,sans-serif;
+}
+
+h1, h2 {
+        border-bottom: 1px solid gray;
+}
+
+h1 {
+        font-size: 1.25em;
+}
+
+h2 {
+        font-size: 1.1em;
+}
+
+h3 {
+        font-size: 1.05em;
+}
+
+a:hover {
+	color: #f00;
+}
+
+#home {
+        color:black;
+        font-size: 150%;
+        text-decoration: none;
+}
+
+a:visited#home {
+        color: black;
+}
+
+a:hover#home {
+        color: red;
+}
+
+
+
+h1 a {
+	color: black;
+	text-decoration: none;
+}
+
+h3 a {
+	font-weight: normal;
+}
+
+h3 {
+	margin-bottom: .1em
+}
+
+div#buttons {
+	text-align: center;
+	font-size: 120%;
+	text-decoration: none;
+}
+
+div#buttons a {
+	text-decoration: none;
+	border: thin solid gray;
+	padding: .1em .3em .15em;
+	margin: .5em .1em;
+	background: #eee;
+	border-radius: 2px;
+	-moz-border-radius: 2px;
+
+}
+
+span.toplinks a {
+	font-size: 80%;
+	margin: 0em .3em;
+}
+
+</style>
+</head>
+<body">
+<h1>Searching with MG4J</h1>
+
+<h2>Basic syntax</h2>
+
+    <p>Basic MG4J syntax is pretty straightforward.
+	If you type some words MG4J will search for them in all indexed fields
+	(unless you force a single field&mdash;read below). 
+	All words must be present in at least one of
+	the fields a document to be listed in the output.
+
+    <p>First of all, if you are accessing multiple fields (e.g., “title”
+    and “body”) you can
+	ask for a subquery (e.g., a specific term) to appear in just one index by prefixing the subquery
+	with the index name, followed by a colon. Thus, <samp>title:web</samp>
+	searches for &ldquo;web” just in titles, and nowhere else. 
+
+    <p>There is a stemming operator <samp>*</samp> that searches for all
+	terms starting with a given prefix: <samp>page*</samp> will search for
+	 “page” as well as  “pages”,  “paged” and so on (there is a limit on
+	the amount of stemming you can do, however).
+
+     <p>You can create more complex queries using the <samp>AND</samp> operator
+	(a.k.a. <samp>&amp;</samp>, or just juxtaposition of terms) or using the OR operator (a.k.a. <samp>|</samp>). 
+	Thus, <samp>page | pages</samp> will search for any of the words “page” and
+	“pages” in all indices, whereas <samp>title:page text:pages</samp>
+	searches for “page” in titles and
+	“pages” in the  description text. You can also
+	surround lists of words with double quotes, and words will be searched for in that sequence:
+	<samp>"one page"</samp> will search exactly for the two-word sequence “one page”. Inside
+	quotes, <samp>$</samp> means “any word”, so <samp>"one $ page"</samp> will match “one nice page”,
+	“one ugly page”, and so on.
+
+    <p>If you <em>do not</em> want some query to be satisfied, just add an exclamation mark
+	(or the keyword <samp>NOT</samp>) in front of it. <samp>! pages</samp> finds pages where the word “pages” does not appear.
+	<samp>page* ! automatic</samp> searches for “page”, “pages”, “paged”, etc. but
+	just where “automatic” does not appear.
+
+    <p>You can always use parentheses to group correctly parts of a query. For instance,
+	if you want to search for “page” or “pages” in titles, just use <samp>title:(page OR pages)</samp>
+
+    <p>A more sophisticated modifier is proximity restriction: if you surround a query
+	with <samp>()~<var>k</var></samp>, where <var>k</var> is an integer, only documents
+	satisfying the query within regions of text shorter than <var>k</var> will be returned. 
+	Now, if the query is a query combining with <samp>AND</samp> several
+	terms, the result is clear. But MG4J can make a sense of it for any query. So
+	<samp>title:(one page | two pages)~5</samp> will search for documents in whose
+	title either “one” and “page” or “two” and
+        “pages” appear at most at distance five (i.e., with at most three words in the middle).
+
+
+    <h2>Advanced features</h2>
+
+    <p>Using ordered conjunction, denoted by <samp>&lt;</samp>, you can search for several terms <em>in a specified order</em>.
+	So <samp>line &lt; break</samp> will search for “line” and “break”, but only in this order.
+	A document containing just one occurrence of “break” followed by one occurrence of “line” won't match.
+
+	<p>There is a query expansion operator <samp>+</samp> whose meaning in terms of retrieved documents is exactly
+	equivalent to disjunction (<samp>OR</samp>). However, for scoring purposes all terms in a query expansion are treated
+	as if they where identical (in term of frequency) to the first term. This behaviour makes the scoring more precise, at
+	it avoids that very rare variants of an expanded common term get too high a score.
+
+	<p>To each query, MG4J associates a set of regions of text that satisfy the query. For instance, in the
+	simple case of a conjunction of terms, this set is composed by the set of minimal regions of text
+	containing all terms. Brouwerian difference, denoted by <samp>-</samp>, makes it possible to delete from
+	the set of regions associated to the minuend any region containing some of the regions associated to the subtrahend. If the resulting
+	set is empty, the document won't match. For instance, searching for <samp>"romeo $ juliet" - and</samp> will
+	return all documents containing “romeo <var>something</var> juliet”, where however <var>something</var> cannot be “and”.
+	
+    <h2>Complex queries</h2>
+
+	<p>As we already discussed, MG4J associates regions of text to each query. This regions are used subsequently to give
+	meaning to composed queries. Thus, whenever for simplicity we used “term” in the above explanations, we could have always
+	used “subquery”. Some examples follow:
+	
+	<ul>
+	<li><samp>"one page" < "two pages"</samp> will search for the exact sequence “one page” <em>followed</em>
+	(with possibly words inbetween) by the exact sequence “two pages”. <samp>;
+	<li><samp>(we | you) < "go home"</samp> will search for the term “we” or the term “you” <em>followed</em> (with possibly words inbetween) by
+	the exact sequence “go home”;
+	<li><samp>"(we | you) (go < home)"</samp> will search for for the term “we” or the term “you” <em>immediately followed</em> by the term “go”
+	<em>followed</em> (with possibly words inbetween) by the term “home”;
+	<li><samp>(cheap "computer appliances")~5</samp> will search for for the term “cheap” and the exact sequence “computer appliances”, but
+	they must appear with at most two words inbetween;
+	<li><samp>"romeo $ juliet"</samp> will search for “romeo <var>something</var> juliet”.
+	</ul>
+	
+	<p>For the most complete and up-to-date information on MG4J query syntax, please refer to the
+	<a href="http://mg4j.dsi.unimi.it/docs/it/unimi/dsi/mg4j/search/package-summary.html">Javadoc documentation</a>.
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>MG4J: Managing Gigabytes for Java</title>
+  </head>
+
+  <body>
+
+    <P>Classes for assigning scores to documents. 
+    
+    <p>A {@link it.unimi.di.big.mg4j.search.score.Scorer} is an 
+    object that wraps an underlying {@link it.unimi.di.big.mg4j.search.DocumentIterator} and assigns scores to the documents
+ 	 returned by the underlying iterator. In general, once a scorer has
+ 	 {@linkplain it.unimi.di.big.mg4j.search.score.Scorer#wrap(it.unimi.di.big.mg4j.search.DocumentIterator) wrapped a document iterator}
+ 	 one just calls {@link it.unimi.dsi.fastutil.ints.IntIterator#nextInt() nextInt()} and
+ 	 {@link it.unimi.di.big.mg4j.search.score.Scorer#score()} to get scored documents (some iterators
+ 	 might support {@linkplain it.unimi.di.big.mg4j.search.score.Scorer#score(it.unimi.di.big.mg4j.index.Index) index-restricted scoring},
+ 	 but this is optional).
+ 	 
+ 	 <p>If the scorer is a {@link it.unimi.di.big.mg4j.search.score.DelegatingScorer}, then by contract
+ 	 it just delegates all {@link it.unimi.dsi.fastutil.ints.IntIterator}'s
+ 	 methods to the underlying iterator.
+ 	 In this case, it is possible to advance manually the underlying iterator and call
+ 	 {@link it.unimi.di.big.mg4j.search.score.Scorer#score()}. While this behaviour is useless for
+ 	 general users, it is essential for {@linkplain it.unimi.di.big.mg4j.search.score.AbstractAggregator aggregated scorers},
+ 	 which combine several delegating scorers and provide services such as equalisation
+ 	 and interval caching (in case more than one component scorer uses intervals). See, for instance,
+ 	 {@link it.unimi.di.big.mg4j.search.score.LinearAggregator}.
+ 	 
+ 	 
+ 	 <h2>Creating scorers from string descriptions</h2>
+ 	 
+ 	 <p>Scorers should provide, whenever possible, constructors accepting exclusively strings. Such constructors
+ 	 makes it possible to create easily instances using the {@link it.unimi.dsi.lang.ObjectParser} conventions, so
+ 	 that instances can be specified on a command line interface.
+  </body>
+</html>

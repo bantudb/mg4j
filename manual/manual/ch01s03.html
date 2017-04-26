@@ -1,0 +1,17 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>More options</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch01.html" title="Chapter 1. A Quick Tour of MG4J"><link rel="prev" href="ch01s02.html" title="Building a compressed collection"><link rel="next" href="ch01s04.html" title="Querying MG4J"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">More options</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01s02.html">Prev</a> </td><th width="60%" align="center">Chapter 1. A Quick Tour of <span class="application">MG4J</span></th><td width="20%" align="right"> <a accesskey="n" href="ch01s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907594368"></a>More options</h2></div></div></div><p>All tools and classes used so far have a large number of options
+      that make them highly configurable. For instance, there are other
+      properties of a factory that can be specified—please have a look at the
+      Javadoc of the document factory you are using. For instance, a common
+      property is <code class="literal">wordreader</code>, which makes it possible to
+      specify a different instance of <code class="classname">WordReader</code>—the
+      class that it used to segment text into words and non-words. The
+      standard <code class="classname">WordReader</code>
+      (<code class="classname">FastBufferedReader</code>) considers just letters and
+      digits as part of a word, but you can choose your variant, and even
+      specify it directly on the command line: for instance,
+      <code class="option">-pwordreader=FastBufferedReader\(_\)</code> specifies that
+      underscores should be considered as part of a word. More generally, you
+      can specify an expression that follows <code class="literal">dsutils</code>'s
+      <code class="classname">ObjectParser</code> conventions and that will be used to
+      instantiate a <code class="classname">WordReader</code>.</p><p>All MG4J tools implement the standard <code class="option">--help</code>
+      option, which will display a detailed help text.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Building a compressed collection </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Querying <span class="application">MG4J</span></td></tr></table></div></body></html>

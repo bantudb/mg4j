@@ -1,0 +1,69 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Building a compressed collection</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch01.html" title="Chapter 1. A Quick Tour of MG4J"><link rel="prev" href="ch01.html" title="Chapter 1. A Quick Tour of MG4J"><link rel="next" href="ch01s03.html" title="More options"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Building a compressed collection</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01.html">Prev</a> </td><th width="60%" align="center">Chapter 1. A Quick Tour of <span class="application">MG4J</span></th><td width="20%" align="right"> <a accesskey="n" href="ch01s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907571648"></a>Building a compressed collection</h2></div></div></div><p>During the indexing process, it is possible to build a compressed
+      version of the collection used to build the index itself. There are
+      several ways to do that (and you can program your own). The easy way is
+      to use the <code class="option">-B</code> option, which accepts a basename from
+      which various files will be generated. By default, MG4J will generate a
+      <code class="classname">SimpleCompressedDocumentCollection (</code>but you can
+      write your kind of collection, provide a
+      <code class="classname">DocumentCollectionBuilder</code> for it, and just pass
+      it to <code class="classname">Scan</code>). For instance,</p><pre class="screen">java it.unimi.di.big.mg4j.tool.IndexBuilder \
+    -B javacomp --downcase -S javadoc.collection javadoc</pre><p>would
+      generate during the indexing process a collection, which would be named
+      <code class="filename">javacomp.collection</code>, that you can pass to
+      <code class="classname">Query</code>. The collection is actually a
+      <code class="classname">ConcatenatedDocumentCollection</code> that exhibits a
+      set of component instances of
+      <code class="classname">SimpleCompressedDocumentCollection</code>, one per batch
+      (this arrangement makes collection construction more scalable). This is
+      an important fact to know, because if you move
+      <code class="filename">javacomp.collection</code> somewhere else you will also
+      need to move all files stemmed from <code class="filename">javacomp@</code>,
+      which contain the component collections.</p><p>Note that in this particular case there is no need to build
+      another collection—the <code class="classname">FileSetDocumentCollection</code>
+      used to build the index can be happily passed to
+      <code class="classname">Query</code>. This is, however, not always the case, as
+      MG4J builds indices out of <span class="emphasis"><em>sequences</em></span>—objects that
+      expose the data to be indexed in a sequential fashion. A typical example
+      is the default, built-in
+      <code class="classname">InputStreamDocumentSequence</code>. Assume you have a
+      file <code class="filename">documents.txt</code> that contains one document per
+      line. You can index it as follows:</p><pre class="screen">java it.unimi.di.big.mg4j.tool.IndexBuilder \
+    --downcase -p encoding=UTF-8 javadoc &lt;documents.txt</pre><p>Note the
+      <code class="option">-p encoding=UTF-8</code> option, which sets the encoding of
+      the text file. This command will create a single index with field name
+      <code class="literal">text</code> (you can change the field name with another
+      property—see the <code class="classname">InputStreamDocumentSequence</code>
+      Javadoc). When you query the index, results will be displayed as numbers
+      (positions in the original text), as <code class="classname">Query</code> has no
+      access to a document collection. But if you specify the
+      <code class="option">-B</code> option, you can build on the fly a collection that
+      can be used by <code class="classname">Query</code> to display snippets.</p><p>The kind of collection that is create is customisable. The
+      interface <code class="classname">DocumentCollectionBuilder</code> specifies
+      what a <em class="firstterm">collection builder</em> should provide to be
+      used at indexing time, and a builder can be specified with the
+      <code class="option">--builder-class</code> option. For instance, by specifying
+      <code class="option">--builder-class ZipDocumentCollectionBuilder</code> you will
+      get back the behaviour of the obsoleted <code class="option">-z</code>
+      option—building a <code class="classname">ZipDocumentCollection</code>.</p><p>There are many other collections you can play with—they are
+      contained in the package
+      <code class="classname">it.unimi.di.big.mg4j.document</code>. There are
+      collections for reading from JDBC databases, comma-separated files, and
+      so on (and, of course, you can write your own). Some collections let you
+      play with other collections:
+      <code class="classname">ConcatenatedDocumentCollection</code> exhibits a set of
+      collection as a single collection that concatenates their content.
+      <code class="classname">SubDocumentCollection</code> exhibits a contiguous
+      subset of documents of a given collection as a new collection. Some of
+      these classes have constructor that follow <code class="literal">dsiutil</code>'s
+      <code class="classname">ObjectParser</code> conventions, and thus can be
+      constructed directly for the command line. One such class is
+      <code class="classname">SubDocumentCollection</code>; the following command line
+      uses the <code class="option">-o</code> option to build such a collection on the
+      fly:</p><pre class="screen">java it.unimi.di.big.mg4j.tool.IndexBuilder \
+    --downcase -oSubDocumentCollection\(javadoc.collection,0,10\) mini</pre><p>The
+      above command would just index the first ten documents of
+      <code class="filename">javadoc.collection</code> (see the Javadoc of
+      <code class="classname">SubDocumentCollection</code> for more details). You can
+      then use the option <code class="option">-o</code> to pass the same collection to
+      <code class="classname">Query</code>, or build a compressed collection during
+      the indexing phase.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 1. A Quick Tour of <span class="application">MG4J</span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> More options</td></tr></table></div></body></html>

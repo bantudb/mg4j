@@ -1,0 +1,33 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Combining batches</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"><link rel="prev" href="ch02s03.html" title="Scan: Building batches"><link rel="next" href="ch02s05.html" title="Virtual fields in MG4J"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Combining batches</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s03.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Behind the scenes: The indexing process</th><td width="20%" align="right"> <a accesskey="n" href="ch02s05.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907786896"></a>Combining batches</h2></div></div></div><p>Once you have the batches, you must <em class="firstterm">combine</em>
+      them in a single index (in the <code class="classname">IndexBuilder</code>
+      example, combination has been handled for you). Note that MG4J allows
+      you to combine <span class="emphasis"><em>any</em></span> set of indices, which means, for
+      instance, that if your collection is split in several piece you can
+      index the pieces separately and combine them later. MG4J distinguish
+      three type of index combination:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p><em class="firstterm">Concatenation</em> takes a list of indices
+          and builds a new index as follows: the first document of the second
+          index is renumbered to the number of documents of the first index,
+          and the others follow; the first document of the third index is
+          renumbered to the sum of number of documents of the first and second
+          index, and so on. The resulting index is identical to the index that
+          would be produced by indexing the <span class="emphasis"><em>concatenation</em></span>
+          of document sequences producing each index. This is the kind of
+          combination that is applied to batches, unless documents were
+          renumbered.</p></li><li class="listitem"><p><em class="firstterm">Merging</em> assumes that each index
+          contains a separate subset of documents, with non-overlapping
+          number, and merges the lists accordingly. In case a document appears
+          in two indices, the merge operation is stopped. Note that no
+          renumbering is performed. This is the kind of combination that is
+          applied to batches when documents have been renumbered, and each
+          batch contains potentially non-consecutive document numbers.</p></li><li class="listitem"><p><em class="firstterm">Pasting</em> relaxes further the assumptions
+          of merging: each index is assumed to index a (possibly empty) part
+          of a document. For each term and document, the positions of the term
+          in the document are gathered (and possibly suitably renumbered). If
+          the inputs that have been indexed are text files with newline as
+          separator, the resulting index is identical to the one that would be
+          obtained by applying the UN*X command <span class="command"><strong>paste</strong></span> to
+          the text files. This is the kind of combination that is applied to
+          <span class="emphasis"><em>virtual documents</em></span>, described in the next
+          section.</p></li></ol></div><p>Please consult the Javadoc of the package
+      <code class="literal">it.unimi.di.big.mg4j.document</code> and of the above
+      classes for more information.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Scan: Building batches </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Virtual fields in <span class="application">MG4J</span></td></tr></table></div></body></html>

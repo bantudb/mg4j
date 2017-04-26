@@ -1,0 +1,106 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Chapter 1. A Quick Tour of MG4J</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="index.html" title="MG4J (big): The Manual"><link rel="prev" href="index.html" title="MG4J (big): The Manual"><link rel="next" href="ch01s02.html" title="Building a compressed collection"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 1. A Quick Tour of <span class="application">MG4J</span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch01s02.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idp140540907539328"></a>Chapter 1. A Quick Tour of <span class="application">MG4J</span></h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="section"><a href="ch01.html#idp140540907540800">Building your first index</a></span></dt><dt><span class="section"><a href="ch01s02.html">Building a compressed collection</a></span></dt><dt><span class="section"><a href="ch01s03.html">More options</a></span></dt><dt><span class="section"><a href="ch01s04.html">Querying <span class="application">MG4J</span></a></span></dt><dd><dl><dt><span class="section"><a href="ch01s04.html#idp140540907630368">More sophisticated queries</a></span></dt><dt><span class="section"><a href="ch01s04.html#idp140540907643024">A semantic index</a></span></dt><dt><span class="section"><a href="ch01s04.html#idp140540907672720">A TREC index</a></span></dt></dl></dd></dl></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907540800"></a>Building your first index</h2></div></div></div><p>Indexing in <span class="application">MG4J</span> is centered around
+      documents, either exposed by means of sequences or of collections. For
+      the time being, let us concentrate on collections, which are randomly
+      addressable lists of documents.</p><p>Each document in a collection is associated with a
+      <em class="firstterm">title</em> and a <em class="firstterm">URI</em>. Typical
+      titles are filenames, or titles from HTML documents. URIs can be the
+      actual URL of a page. To build our first document collection, we use the
+      main method of the class
+      <code class="classname">FileSetDocumentCollection</code>, which allows to build
+      and serialize a set of documents specified by their filenames. As a
+      typical case, we will build a collection out of your Javadoc
+      documentation directory. Supposing your Javadocs are located in
+      <code class="filename">/usr/share/javadoc</code>, you may try the
+      following:</p><pre class="screen">find /usr/share/javadoc/ -iname \*.html -type f | \
+    egrep -v "(package-|-tree|class-use|index-.*.html|allclasses)" | \
+    java it.unimi.di.big.mg4j.document.FileSetDocumentCollection \
+        -f HtmlDocumentFactory -p encoding=UTF-8 javadoc.collection</pre><p>Let
+      us try to understand what's happening. We are providing as input to the
+      main method of the class a list of files, one per line. Moreover, we are
+      specifying (using the <code class="literal">-f</code> option) a
+      <em class="firstterm">factory</em>, that is, something that will turn a pure
+      stream of bytes (provided, in this case, by a file) into a document made
+      by several <em class="firstterm">fields</em> (for instance, title and main
+      text). The factory needs to know the encoding of the files, and we are
+      specifying UTF-8 as a <em class="firstterm">property</em>. All this
+      information is serlialised and stored in a file named
+      <code class="filename">javadoc.collection</code>. Note that since we are using a
+      standard MG4J factory, we can avoid to write the full factory class name
+      (<code class="classname">it.unimi.di.big.mg4j.document.HtmlDocumentFactory</code>).</p><p>If you try and look into the file
+      <code class="filename">javadoc.collection</code>, you will discover that this is
+      indeed a typical, serialized version of a Java object; note that the
+      file <span class="emphasis"><em>is not going to contain</em></span> the files that are
+      part of the collection, but only their name. This means, in particular,
+      that the very existence of the collection will depend on the existence
+      of the files spanned by the collection; in other words, deleting or
+      modifying any of the indexed file may cause inconsistence in the
+      collection (and, more importantly, in the index produced in the
+      following steps). This is true of almost every collection: document
+      collections may base their existence on some external data (files, web
+      pages, mailbox files etc.), and they usually become inconsistent as soon
+      as such data are modified, changed or deleted.</p><p>It is now time to index our collection. To do so, we simply pass
+      the collection to the main method of the class
+      <code class="classname">IndexBuilder</code>, which scans all documents in the
+      collection and produces a number of indices, one for each field of the
+      collection. The number of fields depends on the factory used to produce
+      documents: in our case, we will get indices for the title (the content
+      of the HTML <code class="literal">title</code> element, if present; the filename
+      is used, instead, if the title element is absent) and the body (the
+      textual content of the entire HTML page). Additionally,
+      <code class="classname">FileSetDocumentCollection</code> sets the URI of each
+      document to a URI pointing to the absolute location of the file in the
+      file system; the document title is, once more, going to be the title
+      appearing in the HTML content.</p><pre class="screen">java it.unimi.di.big.mg4j.tool.IndexBuilder \
+    --keep-batches --downcase -S javadoc.collection javadoc</pre><p>The class <code class="classname">IndexBuilder</code> has a large number
+      of options, as it runs in sequence the two phases of the indexing
+      process. These phases are also available separately, mainly in the case
+      of very large collection (hundreds of millions of documents) for which
+      the memory limits are rather tight. Note that we did not specify a
+      memory option, for instance, <code class="option">--Xmx256M</code>, as it is not
+      necessary (and might be even pernicious) on newer Java virtual machines,
+      which allocate memory dynamically; if you run into memory problem,
+      please allow for more memory.</p><p>In this example, we have used the <code class="option">--downcase</code>
+      option that forces all the terms to be downcased: this means that the
+      index will collapse words that differ only for the presence of
+      upper/lowercase letters. For example, terms <code class="literal">String</code>
+      and <code class="literal">string</code> will not be distinguished. More generally,
+      you could specify a different <span class="emphasis"><em>term processor</em></span> for
+      custom term modification (in this case, the
+      <code class="classname">DowncaseTermProcessor</code> class has been implicitly
+      chosen). The <code class="option">-S</code> option specifies that we are producing
+      an index for the specified collection
+      (<code class="filename">javadoc.collection</code>): if the option was omitted,
+      <code class="classname">Index</code> would expect to index a document sequence
+      read from standard input (more about this below). The
+      <code class="option">--keep-batches</code> option is not used normally, but we
+      specify it here so to have a look at the temporary files generated
+      during the indexing process. The last, unflagged option,
+      <code class="filename">javadoc</code>, is the only mandatory option for
+      <code class="classname">Index</code>, and it is the <em class="firstterm">index
+      basename</em>, the basename after which all index files are
+      stemmed.</p><p>Since our collection has documents containing two fields, named
+      <code class="literal">title</code> and <code class="literal">text</code>, there will be two
+      sets of index files: each will be named, by convention, with the index
+      basename followed by the field name (separated with a dash). Hence,
+      there will be index files named
+      <code class="literal">javadoc-title.something</code> and files named
+      <code class="literal">javadoc-text.something</code>.</p><p>We have now built indices, and we are ready to query them using a
+      web server. This is very easy in <span class="application">MG4J</span>: we
+      just run the main method of the <code class="classname">Query</code> class
+      specifying the <code class="option"><code class="literal">-h</code></code> option and passing
+      as argument the indices and (for showing snippets) the
+      collection:</p><pre class="screen">java it.unimi.di.big.mg4j.query.Query -h -i FileSystemItem \
+     -c javadoc.collection javadoc-text javadoc-title</pre><p>We can now either use the command line (if you have
+      <span class="command"><strong>rlwrap</strong></span> installed, you can put it to good use), or
+      open the search page by pointing our browser to
+      <code class="uri">http://localhost:4242/Query</code> and start querying the
+      collection. Note that <code class="option">-i</code> option, which specifies what
+      to link to result items: the specified class links a file in the file
+      system using a local HTTP server (the observation about class names made
+      for factories applies here, too).</p><p>Note that the names we specified for the indices (e.g.,
+      <code class="literal">javadoc-text</code>) are actually URIs, so you can add
+      options much like in a web query. For instance,
+      <code class="literal">javadoc-text?inMemory=1</code> would load the index into
+      main memory, whereas <code class="literal">javadoc-text?mapped=1</code> would try
+      to use low-level memory-mapping features of the operating system to
+      cache the most frequently used part of the index in main memory.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ch01s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">MG4J (big): The Manual </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Building a compressed collection</td></tr></table></div></body></html>

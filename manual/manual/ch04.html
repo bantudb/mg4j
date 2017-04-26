@@ -1,0 +1,20 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Chapter 4. Clusters &amp; Partitioning</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="index.html" title="MG4J (big): The Manual"><link rel="prev" href="ch03s04.html" title="Query Time"><link rel="next" href="ch04s02.html" title="Partitioning vs. Clustering"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 4. Clusters &amp; Partitioning</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch04s02.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idp140540907899840"></a>Chapter 4. Clusters &amp; Partitioning</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="section"><a href="ch04.html#idp140540907900784">Documental vs. Lexical</a></span></dt><dt><span class="section"><a href="ch04s02.html">Partitioning vs. Clustering</a></span></dt><dt><span class="section"><a href="ch04s03.html">Creating a Cluster</a></span></dt></dl></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907900784"></a>Documental vs. Lexical</h2></div></div></div><p>MG4J provides a completely generic way of combining indices into
+      clusters. This feature can be used, for instance, to support incremental
+      indexing, but it goes way beyond that. An index is just a
+      <em class="firstterm">composite</em> in the design-pattern sense, and can be
+      built by combining different indices. For instance, you can index
+      separately two sets of documents and then use the two resulting indices
+      as a single index using a concatenation-based cluster index.
+      Alternatively, you can actually combine the indices, getting a new
+      index.</p><p>More generally, a cluster exhibits a set of
+      <em class="firstterm">local</em> indices as a single
+      <em class="firstterm">global</em> index. Clusters, moreover, can be
+      <em class="firstterm">documental</em> or <em class="firstterm">lexical</em>. In
+      a documental cluster, each document of the global index appears exactly
+      once in each local index. In a lexical cluster, each term of the global
+      index appears exactly once in each local index. These two types of
+      clusters satisfy different needs: documental clusters, for instance, can
+      be used to keep a set of documents with high static rank in a separate
+      index living on faster storage, whereas lexical cluster can be used to
+      load in memory the inverted lists of terms that appear more frequently
+      in user queries.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ch04s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Query Time </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Partitioning vs. Clustering</td></tr></table></div></body></html>

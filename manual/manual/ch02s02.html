@@ -1,0 +1,97 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Preamble: terms, dictionaries and term-related maps</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"><link rel="prev" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"><link rel="next" href="ch02s03.html" title="Scan: Building batches"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Preamble: terms, dictionaries and term-related maps</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Behind the scenes: The indexing process</th><td width="20%" align="right"> <a accesskey="n" href="ch02s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907690624"></a>Preamble: terms, dictionaries and term-related maps</h2></div></div></div><p>Before starting our description of the indexing process, a brief
+      introduction is necessary to present some basic concepts.
+      <span class="application">MG4J </span>has to do with documents (e.g., HTML
+      files, mail messages etc.), and every document is composed by fields
+      (e.g., the fields of a mail message will probably be its subject,
+      sender, recipient, body etc.). Although, as we shall see,
+      <span class="application">MG4J </span>will provides support for non-textual
+      fields, its "bread and butter" is with textual fields, and for the time
+      being we shall assume that we are dealing with documents composed of
+      just one textual field.</p><p>A textual field (in our simplified view: a document) is a sequence
+      of words: it is up to the factory producing the document to decide how
+      to choose words (e.g., one may want to discard digits or not), and how
+      to <em class="firstterm">segment</em> the document. For instance, the
+      typical letter-to-nonletter transition used to split Western languages
+      does not work very well with, say, Chinese. However, once segmentation
+      has produced suitable words, they must be turned into indexable
+      <em class="firstterm">terms</em>: for instance, you may want to downcase
+      your words, but at the same time you may want to keep "ph" (as in "this
+      soap's ph") separated from "Ph" (as in "Ph.D. degree"). You may also
+      want to make more dramatic transformations, such as
+      <em class="firstterm">stemming</em>, or avoid indexing a term altogether.
+      All these operation are performed by a <em class="firstterm">term
+      processor</em>, which can be specified on the command line. The
+      option <code class="option">--downcase</code>, for instance, selects for you the
+      class
+      <code class="classname">it.unimi.di.big.mg4j.index.DowncaseTermProcessor</code>.
+      The chosen processor is recorded into the index structure: this is
+      essential for interpreting queries correctly.</p><p>Note that in the design of other search engines segmentation and
+      processing are somehow mixed into a generic tokenisation phase. We
+      prefer to split clearly between <span class="emphasis"><em>linguistic</em></span> and
+      <span class="emphasis"><em>algorithmic</em></span> term processing. Linguistic processing
+      depends only on the writing customs of a language, whereas algorithmic
+      processing might be language neutral (we do not exclude, however, that
+      it might be language dependent, too).</p><p>If you scan the whole document collection, you can collect all
+      terms that appear in it; the set of all such terms is called the
+      <em class="firstterm">term dictionary</em>. Note that every term in the
+      dictionary appears in some (at least one) document, and probably it will
+      appear in many documents, possibly even many times in some documents.
+      (By the way: terms that appear in just one document are called
+      <em class="firstterm">hapax legomena</em>, and they are far more frequent
+      than one might expect in many collections, especially due to
+      typos).</p><p><span class="application">MG4J</span>, like any other indexing tool,
+      does not treat internally terms as character sequences, but it uses
+      numbers. This means that terms in the dictionary are assigned an index
+      (a number between 0 and the dictionary size minus 1), and that this
+      index is used whenever the application needs to refer to a term.
+      Usually, indices are assigned in lexicographical order: this means that
+      index 0 is assigned to the first term in lexicographic order, index 1 to
+      the next one and so on). The assignment between terms and indices is
+      stored in a suitable data structure, that compactly represents both the
+      dictionary and the map.</p><p>There are many possible different representations of this
+      assignment, each with certain memory requirements and each allowing
+      different kind of access to the data.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>The simplest kind of representation of a dictionary is the
+          <em class="firstterm">term list</em>: a text file containing the whole
+          dictionary, one term per line, in index order (the first line
+          contains term with index 0, the second line contains term with index
+          1 etc.). This representation is not especially efficient, and
+          access-time is prohibitive for most applications. Usually, a file
+          containing the term list is stemmed with <code class="literal">.terms</code>;
+          if the terms are <span class="emphasis"><em>not</em></span> sorted lexicographically,
+          the file is stemmed with <code class="literal">.terms.unsorted</code>.</p></li><li class="listitem"><p>A much more efficient representation is by means of a
+          <em class="firstterm">monotone minimal perfect hash function</em>: it is
+          a very compact data structure that is able to answer correctly to
+          the question <span class="quote">“<span class="quote">What is the index of this term?</span>”</span> (more
+          presicely, "What is the lexicographical rank of this term in the
+          term list?"). You can build such a function from a <span class="emphasis"><em>sorted
+          </em></span>term list using the (main method of) implementations
+          available in <a class="ulink" href="http://sux4j.dsi.unimi.it/" target="_top">Sux4J</a>.</p></li><li class="listitem"><p>Monotone minimal perfect functions are very efficient and
+          compact, but they have a serious limit. As we said before, they can
+          answer correctly to the question <span class="quote">“<span class="quote">What is the index this
+          term?</span>”</span>, but <span class="emphasis"><em>only for terms that appear in the
+          dictionary</em></span>. In other words, if the above question is
+          posed for a term that does not appear anywhere, the answer you get
+          is completely useless. This is not going to cause any harm, if you
+          are sure that you will never try to access the function with a term
+          that does not belong to the dictionary, but it will become a
+          nuisance in all other cases. To solve this problem, you can
+          <em class="firstterm">sign</em> the function. A signed function will
+          answer with a special value (-1) that means <span class="quote">“<span class="quote">the word is not
+          in the dictionary</span>”</span>. You can sign any function using the
+          signing classes in <a class="ulink" href="http://dsiutils.dsi.unimi.it/" target="_top"><code class="literal">dsiutils</code></a>
+          (e.g., <code class="classname">ShiftAddXorSignedFunction</code>).</p></li><li class="listitem"><p>Signed and unsigned monotone minimal perfect hash functions
+          are ok, as long as you don't need to access the index with
+          wildcards. Wildcard searches require the use of a <em class="firstterm">prefix
+          map</em>. A prefix map is able to anwer correctly to
+          questions like <span class="quote">“<span class="quote">What are the indices of terms starting with
+          these characters?</span>”</span>. This is meaningful only if the terms are
+          lexicographically sorted: in this case, the indices of terms
+          starting with a given prefix are consecutive, so the above question
+          can be answered by giving just two integers (the first and the last
+          index of terms satisfying the property). You can build a prefix map
+          by using the main method of one of the implementation of the
+          <code class="classname">PrefixMap</code> interface, e.g.,
+          <code class="classname">ImmutableExternalPrefixMap</code> from
+          <code class="literal">dsiutils</code>—actually, this is exactly what happens
+          when you use <code class="classname">IndexBuilder</code>, albeit you can
+          specify a different class for the term map using an option.</p></li></ul></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 2. Behind the scenes: The indexing process </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Scan: Building batches</td></tr></table></div></body></html>

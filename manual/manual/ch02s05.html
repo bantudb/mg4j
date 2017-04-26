@@ -1,0 +1,159 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Virtual fields in MG4J</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"><link rel="prev" href="ch02s04.html" title="Combining batches"><link rel="next" href="ch02s06.html" title="Payload-based indices"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Virtual fields in <span class="application">MG4J</span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s04.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Behind the scenes: The indexing process</th><td width="20%" align="right"> <a accesskey="n" href="ch02s06.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907797632"></a>Virtual fields in <span class="application">MG4J</span></h2></div></div></div><p>As we explained, documents usually originate from some stream in
+      the form of byte sequences; every such sequence representing a document
+      is then interpeted by some <span class="emphasis"><em>document factory</em></span> that
+      actually maps the byte sequence into a set of fields. For example, the
+      <code class="classname">it.unimi.di.big.mg4j.document.HtmlDocumentFactory</code>
+      translates a sequence of bytes into a set of fields, such as the title
+      of the HTML document and its body. The factory deals with all the
+      problems of translating bytes into characters, of establishing which
+      parts of the document should be retained (e.g., in the case of HTML,
+      discarding tags), of determining word borders etc.</p><p>There are cases, though, when the content of a document actually
+      refers to another document in the collection: for example, it is well
+      known that a HTML document may contain <em class="firstterm">anchors</em>,
+      that are pieces of text that link to (and, at least conceptually, refer
+      to) another document, specified via a URI.</p><p>As an example, consider the following document, with URI
+      <code class="uri">http://foo.bar/one.html</code>:</p><pre class="screen">&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"&gt;
+&lt;html&gt;
+  &lt;title&gt;This is document one&lt;/title&gt;
+  &lt;body&gt;
+    &lt;p&gt;Here you can find a &lt;a href="http://foo.bar/two.html"&gt;document \
+       containing a lot of information about Mongolia&lt;/a&gt;.
+  &lt;/body&gt;
+&lt;/html&gt;</pre><p>The piece of text that reads:</p><pre class="screen">document containing a lot of information about Mongolia</pre><p>is actually an anchor that refers to another document (with URI
+      <code class="uri">http://foo.bar/two.html</code>) and this fact should somehow be made
+      explicit when indexing the collection. For example, in some sense, the
+      word <code class="literal"><code class="literal">Mongolia</code></code>should be taken as
+      appearing in the document <code class="uri">http://foo.bar/two.html</code>, even if it
+      may not even be mentioned in the text at that page.</p><p>This situation is dealt with by <span class="application">MG4J
+      </span>with the special notion of <em class="firstterm">virtual
+      field</em>. Understanding how virtual fields actually work
+      requires some patience, and some knowledge of the internal organization
+      of document collections and factories; the reader may want to skip this
+      section, reserving it for later.</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907808960"></a>Virtual fields and virtual fragments</h3></div></div></div><p>As we briefly said, every document factory is responsible for
+        turning raw byte sequences into documents. In particular, every
+        factory transforms a sequence of bytes into a number of
+        <em class="firstterm">fields</em>. Every field has a
+        <em class="firstterm">name</em> and a <em class="firstterm">type</em>: for
+        example, a document factory for mail documents might contain fields
+        such as <code class="literal">subject</code>, <code class="literal">from</code>,
+        <code class="literal">to</code>, <code class="literal">body</code>,
+        <code class="literal">date</code> etc. The type of a field determines which
+        values the field might contain. The two most important types of fields
+        (and currently the only ones that MG4J is able to index) are
+        <em class="firstterm">textual fields</em> and <em class="firstterm">virtual
+        fields</em>.</p><p>A textual field, as the reader may guess, is just a piece of
+        text, that is recognized as composed by words: words of a textual
+        fields are the atoms of MG4J indexing system for textual fields. How
+        words are really singled out from the stream of characters is a subtle
+        problem that is dealt with by something that is called a
+        <em class="firstterm">word reader</em> in the MG4J jargon, but we reserve
+        a more comprehensive explanation of how this actually works for
+        later.</p><p>Let us consider, instead, virtual fields. To make our
+        explanations more concrete, let us consider the
+        <code class="classname">HTMLDocumentFactory</code>: as we said above, this
+        factory produces fields out of a HTML document. Actually, the factory
+        has three fields: two of them (<code class="literal">text</code> and
+        <code class="literal">title</code>) are textual, and one
+        (<code class="literal">anchor</code>) is virtual.</p><p>A virtual field produces pieces of text that are to be referred
+        to other documents, possibly belonging to the collection. To establish
+        a precise terminology, let us call <em class="firstterm">referrer</em> the
+        document that we are considering, and <em class="firstterm">referee</em>
+        the document to which a certain piece of referrer is referring to.
+        Now, the referrer produces in a virtual field a number of fragments of
+        text, each referring to a certain referee. Hence, the content of a
+        virtual field is conceptually a list of pairs made by a piece of text
+        (called <em class="firstterm">virtual fragment</em>) and by some string
+        that is aimed at representing the referee (called the
+        <em class="firstterm">document spec</em> because it should somehow specify
+        which document we are referring to).</p><p>In the case of the <code class="classname">HTMLDocumentFactory</code>,
+        the <code class="literal">anchor</code> field is the list of all anchors
+        contained in the document; the document spec is a URL (as specified in
+        the href attribute) whereas the virtual fragment is the content of the
+        anchor element. To be more precise, the actual implementation of the
+        factory in MG4J considers not only the content of the anchor, but also
+        some surrounding text, calle the anchor context. This is only
+        incidental, though: the important point is that a certain piece of
+        text is associated with the document spec.</p><p>Note that as far as document factories are concerned, there is
+        no fixed way to map document spec into actual references to documents
+        in the collection. This is resolved, in MG4J, by the notion of
+        <em class="firstterm">document resolver</em>.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907825328"></a>Document resolvers</h3></div></div></div><p>A document resolver is an object that is able to map the
+        document spec produced by some document factory into actual references
+        to documents in the collection: more precisely, given a document spec,
+        the resolver will decide whether the spec really refers to a document
+        in the collection or not, and in the first case it will find out to
+        which document the spec refers to.</p><p>You don't need to deal with document resolvers until you try to
+        index virtual fields. This is something that actually MG4J does only
+        on demand: this is why in the example of the previous section we
+        ignored the problem. Indeed, when we issued the command:</p><pre class="screen">java -Xmx256M it.unimi.di.big.mg4j.tool.IndexBuilder \
+    --downcase -S javadoc.collection javadoc</pre><p>we asked MG4J to index <span class="emphasis"><em>only the textual fields of the
+        collection</em></span> (whose documents were, as you remember, HTML
+        documents). This means that only titles and texts were indexed, but no
+        anchors (some of you may have noticed that MG4J emitted a brief
+        warning about this fact, logging that <code class="literal">Virtual field anchor is
+        not being indexed; use -a or explicitly add field among the indexed
+        ones</code>).</p><p>Now, if you want to index also anchors you might explicitly ask
+        for it, or you may use the <code class="option">-a</code> option:</p><pre class="screen">java -Xmx256M it.unimi.di.big.mg4j.tool.IndexBuilder \
+    -a --downcase -S javadoc.collection javadoc</pre><p>If you try to do so, you will get an exception, saying that
+        <code class="literal">No resolver was associated with virtual field
+        anchor</code>: to understand the meaning of this exception we need
+        to build a document resolver that is able to translate the document
+        spec produced for the field anchor by the
+        <code class="classname">HTMLDocumentFactory</code> into references to
+        documents of the collection. Note that every document spec needs a
+        different kind of document resolver, and you need to know which
+        document resolver fits the needs of a certain virtual field.</p><p>In the case of anchors, the job is done by the
+        <code class="classname">URLMPHVirtualDocumentResolver</code> class, that turns
+        URLs into document pointers (i.e., references to documents). To build
+        a URL document resolver, you first need to find the URLs of the
+        document within your collection; you can list them as follows</p><pre class="screen">java -Xmx256M it.unimi.di.big.mg4j.tool.ScanMetadata \
+    -S javadoc.collection -u javadoc.urls</pre><p>This command scans the whole collection and produces a (text)
+        file called <code class="filename">javadoc.urls</code> that contains the URLs
+        of the collection in their order (of course, the collection URIs must
+        actually be URLs). Note that in the case of our collections, URLs will
+        actually be just file names.</p><p>By the way, you can use <code class="classname">ScanMetadata</code> also
+        to extract other information (e.g., the document titles) from your
+        collection.</p><p>Now that you have a list or URLs, one per document, you can
+        build the document resolver you need by calling:</p><pre class="screen">java -Xmx256M it.unimi.di.big.mg4j.tool.URLMPHVirtualDocumentResolver \
+    -o javadoc.urls javadoc-anchor.resolver </pre><p>This command produces the resolver you need to index your anchor
+        fields. Now, you can try again to index the whole collection,
+        running:</p><pre class="screen">java -Xmx512M it.unimi.di.big.mg4j.tool.IndexBuilder \
+    -a -v anchor:javadoc-anchor.resolver --downcase \
+    -S javadoc.collection javadoc</pre><p></p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907840208"></a>What is a document resolver actually doing: virtual texts and
+        gaps</h3></div></div></div><p>To understand what we just did, it is useful to think that
+        conceptually all the virtual fragments that refer to a given document
+        of the collection should be thought of as producing a single text,
+        called the <em class="firstterm">virtual text</em>. So, for example, all
+        the text of anchors referring to
+        <code class="filename">file:/usr/share/javadoc/java/java/lang/String.html</code>
+        should be concatenated and thought of a single virtual text that will
+        be indexed as a part of
+        <code class="filename">file:/usr/share/javadoc/java/java/lang/String.html</code>.</p><p>Indeed, if you start the query engine again</p><pre class="screen">java it.unimi.di.big.mg4j.query.Query -h -i FileSystemItem \
+     -c javadoc.collection javadoc-text \
+     javadoc-title javadoc-anchor</pre><p>you will be able to input queries such as
+        <code class="literal">text:implementation AND anchor:buffer</code> that are
+        matched by all documents that contain the word
+        <code class="literal">implementation</code> in their text and the word
+        <code class="literal">buffer</code> in (some of their) anchor(s).</p><p>Some caution should be exercised here. When indexing, the
+        virtual text is actually (somehow) built by concatenating the anchor
+        text. This means that virtual fragments coming from different anchors
+        are actually concatenated. This fact might produce false positive
+        results. For example, queries like <code class="literal">anchor:(buffer AND
+        long)</code> are matched by documents that contain both the word
+        <code class="literal">buffer</code> and the word <code class="literal">long</code> in
+        their anchors, but not necessarily in the <span class="emphasis"><em>same
+        anchor</em></span>.</p><p>To avoid such kinds of false positives, you can play with
+        <em class="firstterm">virtual gaps</em>: the virtual gap is a positive
+        integer, and it is the virtual space left between different virtual
+        fragments. For example, if the virtual gap is 64 (the default),
+        anchors are concatenated by leaving 64 "empty words" between
+        subsequent fragments.</p><p>Hence, for example, if you input a query like
+        <code class="literal">anchor:(buffer AND long)~64</code> you will be sure that
+        only documents that contain both words in the <span class="emphasis"><em>same
+        anchor</em></span> will be found. Of course, this time you might have
+        false negatives, if some anchor is longer than 64 words. If you want,
+        while indexing you can specify a different virtual gap; for
+        example:</p><pre class="screen">java -Xmx512M it.unimi.di.big.mg4j.tool.IndexBuilder \
+    -a -g anchor:100 -v anchor:javadoc-anchor.resolver \
+    --downcase -S javadoc.collection javadoc</pre><p>runs exactly as before, but leaving a virtual gap of 100 words
+        between successive fragments.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Combining batches </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Payload-based indices</td></tr></table></div></body></html>

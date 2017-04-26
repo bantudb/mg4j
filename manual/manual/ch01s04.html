@@ -1,0 +1,221 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Querying MG4J</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MG4J (big): The Manual"><link rel="up" href="ch01.html" title="Chapter 1. A Quick Tour of MG4J"><link rel="prev" href="ch01s03.html" title="More options"><link rel="next" href="ch02.html" title="Chapter 2. Behind the scenes: The indexing process"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Querying <span class="application">MG4J</span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01s03.html">Prev</a> </td><th width="60%" align="center">Chapter 1. A Quick Tour of <span class="application">MG4J</span></th><td width="20%" align="right"> <a accesskey="n" href="ch02.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp140540907600752"></a>Querying <span class="application">MG4J</span></h2></div></div></div><p>Querying <span class="application">MG4J</span> is easy if you already
+      used a text-indexing system. The simplest possible query is a single
+      term, e.g., <code class="literal">class</code>: the answer that you will obtain by
+      such a query is the set of all documents (in our case: all files among
+      those that have been indexed) that contain the word
+      <code class="literal">class</code> (or any other uppercase/lowercase variant
+      thereof).</p><p>There are several additional operators you might want to
+      try:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="literal">AND: </code>writing more than one term (separated
+          by whitespace) means that you want to look for documents that
+          contain <span class="emphasis"><em>all the specified words</em></span> (not
+          necessarily in the same order or consecutively); for example, the
+          query <code class="literal">InputStream Reader encoding </code>means that you
+          want to look for documents that contain <span class="emphasis"><em>all the given
+          words</em></span>; you can convey the same meaning by using the
+          operator <code class="literal">&amp;</code> (a.k.a. <code class="literal">AND</code>),
+          thus writing <code class="literal">InputStream &amp; Reader &amp;
+          encoding</code> instead;</p></li><li class="listitem"><p><code class="literal">OR: </code>if you want to write a disjunctive
+          query you can use the operator <code class="literal">|</code> (a.k.a. OR);
+          thus, for example, the query <code class="literal">InputStream | Reader |
+          encoding</code> means that you are looking for documents that
+          contain <span class="emphasis"><em>any of the given words</em></span>;</p></li><li class="listitem"><p><code class="literal">NOT: </code>you can use the operator ! (a.k.a.
+          NOT) to mean negation; thus, for example, the query
+          <code class="literal">InputStream &amp; !Reader</code> means that you are
+          looking for documents that contain the first term <span class="emphasis"><em>but not
+          the second</em></span>;</p></li><li class="listitem"><p>phrase: you can force consecutivity by using quotation marks;
+          thus <code class="literal">"InputStream Reader"</code> means that you want to
+          look for documents that contain these two words
+          <span class="emphasis"><em>consecutively</em></span>;</p></li><li class="listitem"><p>proximity restriction: you can limit your search to documents
+          where the words you are searching appear within a limited portion of
+          the document; this is done with the tilda operator; for example,
+          <code class="literal">(InputStream Reader)~5 </code>means that you are looking
+          for documents where the two given words appear (in any order) within
+          5 words from each other;</p></li><li class="listitem"><p><code class="literal">ordered AND:</code> writing more than one term
+          separated by <code class="literal">&lt;</code> will find documents containing
+          the given terms in the specified order.</p></li><li class="listitem"><p>wildcard search: you can perform wildcard searches by
+          appending * at the end of a term; for example,
+          <code class="literal">term*</code> will look for documents containing "term",
+          "terms", "termed" and so on.</p></li><li class="listitem"><p>parentheses: you can use parentheses to enforce priority when
+          building complex queries; parentheses are not needed in many cases,
+          but they are necessary, for example, when a boolean query is written
+          within a phrase; for example, if you want to look for the word
+          <code class="literal">InputStream</code> followed by <code class="literal">Reader</code>
+          or <code class="literal">Writer</code>, you will enter the query
+          <code class="literal">"InputStream (Reader | Writer)"</code>.</p></li><li class="listitem"><p>index specifiers: prefixing a query with the name of an index
+          followed by a colon you can restrict the search to that index. The
+          name of an index is by default the name of the field that it has
+          indexed, so <code class="literal">title:Reader</code> will search for
+          <code class="literal">Reader</code> just in titles.</p></li><li class="listitem"><p>range queries: if you created an index containing
+          <span class="emphasis"><em>payloads</em></span> (dates, integers, etc.) you can
+          perform range queries using square brackets and two dots: for
+          instance, assuming the existence of a field <code class="literal">date</code>
+          the query <code class="literal">[ 20/2/2007 .. 23/2/2007 ]</code> will search
+          for documents whose date is between 20 February and 23 February
+          2007, inclusive.</p></li></ul></div><p><span class="application">MG4J</span> will emphasise intervals
+      satisfying the query. By clicking on the link of a document, the
+      document will be opened in the browser.</p><p>The description we have just given just scratches the surfaces of
+      the queries you can write with MG4J: <span class="emphasis"><em>all</em></span> the
+      operators can be freely combined, obtaining very sophisticated
+      constraints on the documents returned. More information on this topic
+      can be found in the documentation of the package
+      <code class="literal">it.unimi.di.big.mg4j.search</code>.</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907630368"></a>More sophisticated queries</h3></div></div></div><p>MG4J actually provide very sophisticated query tuning. In
+        particular, it provides <em class="firstterm">scorers</em>, which let you
+        reorder the documents satisying a query depending on some criterion.
+        To use this features, you must use the command line interface, albeit
+        all settings will be used for the subsequent web queries.</p><p>Type <code class="literal">$</code> to get some help on the available
+        options. A basic command is <code class="literal">$mode</code>, which lets you
+        choose the kind of result: just the document number and title, the
+        intervals, snippets and so on. Some options require a full index and a
+        collection (for instance, snippets). The most interesting command,
+        however, is <code class="literal">$scorer</code>, that lets you choose a scorer
+        for your documents. For instance,</p><pre class="screen">$score BM25Scorer VignaScorer</pre><p>reproduces
+        the standard settings, using a BM25 scorer and a scorer that shows
+        firsts documents satisfying your queries more frequently and in
+        smaller intervals, linearly combined with equal weight. Scorers are
+        described in the documentation of the package
+        <code class="literal">it.unimi.di.big.mg4j.search.score</code>.</p><p>When you use a scorer, it is a good idea to use
+        <em class="firstterm">multiplexing</em>: when multiplexing is on, each
+        query is multiplexed to all indices (by default, a query is directed
+        to the first index specified on the command line). Just type</p><pre class="screen">$mplex on</pre><p>Of
+        course, you can always choose a specific index with the colon
+        notation. You can also change the weight of your indices (which is
+        particularly useful when multiplexing):</p><pre class="screen">$weight text:1 title:3</pre><p>In
+        this way, weight-based scorers will usually consider the
+        <code class="literal">title</code> field three times more important than the
+        <code class="literal">text</code> field.</p><p>You can also change the way snippets (or intervals) on display
+        are chosen: MG4J provides an <em class="firstterm">interval selector</em>,
+        a class that will try to choose the best intervals to be shown. You
+        can set the maximum length of an interval, and the maximum number of
+        intervals:</p><pre class="screen">$selector 3 40</pre><p>will show at most three
+        intervals, and intervals longer than 40 characters will be broken. All
+        these changes are reflected in the web interface.</p><p>If you want to learn more about query resolution, you should
+        have a look at the documentation of the class
+        <code class="classname">it.unimi.di.big.mg4j.query.QueryEngine</code>, which
+        embodies all the logic used to answer queries in MG4J.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907643024"></a>A semantic index</h3></div></div></div><p>For our next example, we will put to good use the <a class="ulink" href="http://barcelona.research.yahoo.net/dokuwiki/doku.php?id=semantically_annotated_snapshot_of_wikipedia" target="_top">semantically
+        annotated snapshot of the English Wikipedia</a> created at Yahoo!.
+        The collection exhibits Wikipedia articles as a number of
+        <em class="firstterm">parallel texts</em>, one of which is the sequence of
+        tokens, whereas others provide information like "this token is a
+        person's name". MG4J provides an <em class="firstterm">alignment</em>
+        operator that can be used with parallel texts to align results of two
+        queries—in practise, you can ask which results of an arbitrary query
+        match certain semantic conditions. The support has a few rough edges,
+        but it's an interesting example nonetheless.</p><p>First of all, you must get the collection, for instance through
+        Yahoo!. The collection is made by a number of text files (stored, say,
+        in <code class="filename">/your/wiki/dir/</code>), which must be recorded in a
+        <code class="classname">WikipediaDocumentCollection</code> as follows:</p><pre class="screen">find /your/wiki/dir/ -type f \
+    java it.unimi.di.big.mg4j.document.WikipediaDocumentCollection wiki.collection</pre><p>Similarly
+        to a <code class="classname">FileSetDocumentCollection</code>, the serialized
+        collection will contain references to the files and also a compacted
+        representation of pointers to the start of each record in each file.
+        You can now index as before, and invoke <code class="classname">Query</code>.
+        In this particular case, we use tokens and some semantic
+        tagging.</p><pre class="screen">java it.unimi.di.big.mg4j.query.Query -h \
+     -c wiki.collection wiki-token wiki-WSJ</pre><p>We're now ready. For
+        instance, the query</p><pre class="screen">Washington ^ WSJ:(B\-E\:PERSON | B\-I\:PERSON)</pre><p>will
+        search for "Washington", but only in those positions that have been
+        marked as person names. This happens because the alignment operator
+        <code class="literal">^</code> solves the left query, and then keeps just those
+        results whose positions are the same as those of the second query,
+        which can be on a completely different index. Note that the left and
+        right query of an alignment operator are completely arbitrary, and the
+        overall query is a standard query on the first index. Thus,</p><pre class="screen">"(Washington ^ WSJ:(B\-E\:PERSON | B\-I\:PERSON)) was"</pre><p>would
+        search for "Washington" as a person name, but only if immediately
+        followed by "was".</p><p>If you click on the title of a result, you will be brought to
+        the corresponding Wikipedia page, as the factory embodied in the
+        <code class="classname">WikipediaDocumentCollection</code> sets the document
+        URI to the Wikipedia page. If you want a more technical view of what's
+        happening, you can use the <code class="classname">GenericItem</code> class,
+        which will display in a very simple manner the content of all
+        fields.</p><p>Another interesting property of the Wikipedia examples is the
+        end-of-sentence markers (¶) are indexed. You can use another fairly
+        exotic operator, <em class="firstterm">Brouwerian difference</em>, to
+        restrict your results to queries that are true <span class="emphasis"><em>inside a
+        sentence</em></span>. The semantics of query in MG4J is a set of
+        <em class="firstterm">minimal intervals</em> that represent region of text
+        that satisfy the query. For instance, for the query <code class="literal">was
+        killed</code> the intervals describe the smallest regions of text
+        in which <code class="literal">was</code> and <code class="literal">killed</code> do
+        appear. But the difference operator (a minus) will eliminate the
+        intervals generated by the left query that contain one or more
+        interval from the right query. Thus,</p><pre class="screen">was killed - ¶</pre><p>will perform the same search, but
+        we will see <span class="emphasis"><em>only those results for which there are regions
+        of text not containing</em></span> ¶. In other words, results will be
+        restricted to be within a sentence, as matches (i.e., again, regions
+        of text) that cross sentence borders will be killed by the difference
+        operator.</p><p>Finally, the <em class="firstterm">index remapping</em> operator
+        comes handy in two situations: display the results of a field using
+        another, parallel field, or applying positional operators to results
+        from different fields. If you search for <code class="literal">WSJ:(B\-E\:PERSON |
+        B\-I\:PERSON)</code>, the resulting snippets will be rather
+        ugly:</p><pre class="screen">Document #205 [2.000000] Protected_areas_of_Tasmania
+WSJ: ...0 0 0 B-N:CARDINAL I-N:CARDINAL I-N:CARDINAL I-N:CARDINAL 
+0 B-E:PERSON I-E:PERSON 0 0 0 0 0 B-N:CARDINAL 0 ... 
+
+Document #258 [1.999152] List_of_people_by_name:_Kea-Kel
+WSJ: ? 0 0 B-E:PER_DESC 0 0 0 B-E:PERSON ? 0 0 0 0 0 ? 0 ...</pre><p>This is
+        correct, as MG4J is displaying results from the <code class="literal">WJS</code>
+        field. It is however easy to <em class="firstterm">remap</em> those
+        results to another index: if we try <code class="literal">(WSJ:(B\-E\:PERSON |
+        B\-I\:PERSON)){{WSJ-&gt;token}}</code>, the result will be
+        like</p><pre class="screen">Document #205 [2.000000] Protected_areas_of_Tasmania
+token: ...but it contains no fewer than 495 separate Protected Areas 
+with a total area of 22 , ... 
+
+Document #258 [1.999152] List_of_people_by_name:_Kea-Kel
+token: ? List of people by name : Kea-Kel ? Access to rest of list ? Access ...</pre><p>Snippets
+        are now represented using the parallel content of the
+        <code class="literal">token</code> field.</p><p>Assume now that we want to find a person's name
+        <span class="emphasis"><em>immediately followed</em></span> by the term "was". A direct
+        attemp would be trying the query <code class="literal">"WSJ:(B\-E\:PERSON |
+        B\-I\:PERSON) was"</code>: the result would be an error message
+        ("The phrase operator requires subqueries on the same index"). This is
+        correct, because intervals returned by the two subqueries of the
+        phrasal operators are on different indices—mixing them makes no sense.
+        However, if you're sure that you are handling indices on parallel
+        texts, the idea <span class="emphasis"><em>does</em></span> make sense, and we can
+        convince MG4J about this as follows:</p><pre class="screen">{token, WSJ}&gt;"(WSJ:(B\-E\:PERSON | B\-I\:PERSON){{WSJ-&gt;token}}) (token:was)"
+
+Document #225 [1.996363] Days_of_our_Lives
+token: ...family tree by way of SORAS . ? Abby was rapidly aged to a teenager . ? Abby ...   
+
+Document #467 [1.995153] Airey_Neave
+token: ...in Northern Ireland . ? In 1975 , Neave was the campaign manager for Margaret Thatcher 's victorious ...  </pre><p>In
+        this example, we qualified also "was" with an index selector to avoid
+        problems in case multiplexing is on.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idp140540907672720"></a>A TREC index</h3></div></div></div><p>In this section we discuss thoroughly the construction of an
+        index based on the TREC GOV2 collection (Text REtrieval Conferences
+        are series of events organized by the National Institute of Standards
+        and Technology to evaluate scientifically and reproducibly systems for
+        information retrieval). TREC collections must be bought to be used,
+        but they are very commonly used for scientific work. In this example
+        we use a <code class="classname">TRECDocumentCollection</code> to index GOV2
+        (25 million web pages). Be warned that different collections have
+        slightly different formats, and
+        <code class="classname">TRECDocumentCollection</code> might need some tweaking
+        to work with them (we are making it more and more flexible on a
+        per-request basis).</p><p>GOV2 data comes as a list of files in directories named
+        <code class="filename">GX000</code>, <code class="filename">GX001</code>, and so on. The
+        file themselves are zipped (you can create the collection with
+        unzipped files, however, if you want faster access).</p><pre class="screen">find GX??? -iname \*.gz | \
+    java it.unimi.di.big.mg4j.document.TRECDocumentCollection \
+    -f HtmlDocumentFactory -p encoding=ISO-8859-1 -z trec.collection</pre><p>After
+        some grinding, you'll get the collection. Note that this process is
+        mainly useful for accessing later the collection in a random
+        fashion—for instance, to generate snippets.</p><p>Since we want to index anchor text, we must now generate URIs
+        that will represent each document.</p><pre class="screen">java it.unimi.di.big.mg4j.tool.ScanMetadata -S trec.collection -u trec.uris</pre><p>Note
+        the <code class="option">-U</code> option. GOV2 contains many duplicate (and even
+        triplicate) URLs, modulo trivial normalizations such as adding a bar
+        after the host name. The <code class="option">-U</code> option is a very crude
+        way of making them unique. (A more principled mechanism would involve
+        merging all documents with identical URLs, but that should have been
+        addressed when GOV2 was built.)</p><p>We are now ready to build our index:</p><pre class="screen">java it.unimi.di.big.mg4j.tool.IndexBuilder -S trec.collection \
+    -t snowball.PorterStemmer -a -v anchor:trec.vdr trec</pre><p>We set a
+        rather large batch size, assuming that a lot of memory is available.
+        As we said, <code class="classname">Scan</code> will try to detect low-memory
+        conditions and dump batches automatically, but you can lower the batch
+        size, in case you run into out-of-memory errors. We also require a
+        downcasing Porter stemmer (all <a class="ulink" href="http://snowball.tartarus.org/" target="_top">Snowball</a>-based stemmers
+        downcase terms). Beware again: you will be generating hundreds of
+        batches, so you must be able to open a few thousand files in the
+        combination phase. When the indexing process is completed, you can
+        query the index as usual.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">More options </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 2. Behind the scenes: The indexing process</td></tr></table></div></body></html>

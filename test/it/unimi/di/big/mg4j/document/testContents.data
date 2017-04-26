@@ -1,0 +1,32 @@
+<DOC>
+<DOCNO>GX001</DOCNO>
+<DOCHDR>
+http://gx0001/
+Content-type: stupidty
+</DOCHDR>
+Line 1
+     The line 2!
+  Mamma
+</DOC>
+<DOC>
+<DOCNO>GX002</DOCNO>
+<DOCHDR>
+http://gx0002/
+Content-type: stupidty
+</DOCHDR>
+Contents of this file reside on one line only
+</DOC>
+<DOC>
+<DOCNO>GX003</DOCNO>
+<DOCHDR>
+http://gx0003/
+Content-type: stupidty
+</DOCHDR>
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+</DOC>
+
+
